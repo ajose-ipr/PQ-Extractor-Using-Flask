@@ -1,0 +1,25 @@
+# Log files
+app.log
+*.log
+
+# Uploaded files/directories
+uploads/
+test-pdf-app/uploads/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Environment variables
+.env
+.env.local
+
+# IDE specific files
+.vscode/
+.idea/
+
+# macOS specific
+.DS_Store
+
+# Local configuration overrides
+config.py

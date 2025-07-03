@@ -1,0 +1,41 @@
+/* Custom styles for the application */
+.card {
+    margin-bottom: 2rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    font-weight: bold;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Highlight failed measurements */
+.fail-highlight {
+    background-color: #ffebeb;
+    color: darkred;
+    font-weight: bold;
+}
+
+.harmonic-highlight {
+    background-color: #fff3cd;
+    font-weight: bold;
+}
+
+/* Custom colors for different sections */
+.voltage-section {
+    border-left: 4px solid #4A90E2;
+}
+
+.current-section {
+    border-left: 4px solid #E78400;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem;
+    }
+}

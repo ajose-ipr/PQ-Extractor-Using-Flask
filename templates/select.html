@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>📋 Select a File to Process</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('select_file') }}">
+                    <div class="list-group mb-3">
+                        {% for file in files %}
+                            <button type="submit" name="selected_file" value="{{ file }}" 
+                                    class="list-group-item list-group-item-action">
+                                {{ file }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                    <a href="{{ url_for('bulk_download') }}" class="btn btn-success">
+                        📥 Process All Files & Download Excel
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
