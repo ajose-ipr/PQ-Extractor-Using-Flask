@@ -1,0 +1,494 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-xl-8">
+            <!-- Header Section -->
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold text-primary">Harmonic Analysis Report Processor</h1>
+                <p class="lead text-muted">Upload your weekly PDF reports for automated harmonic analysis and data extraction</p>
+            </div>
+
+            <!-- Upload Card -->
+            <div class="card shadow-sm mb-5">
+                <div class="card-header bg-primary text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-file-upload me-2"></i>Upload Report Files</h4>
+                        <span class="badge bg-light text-primary">Step 1 of 2</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" action="{{ url_for('index') }}" id="upload-form">
+                        <div class="mb-4">
+                            <label for="files" class="form-label fw-semibold">Select PDF files from your weekly report folder:</label>
+                            <div class="file-upload-area border rounded p-4 text-center">
+                                <input class="form-control d-none" type="file" id="files" name="files" multiple accept=".pdf">
+                                <div class="file-upload-prompt">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                    <p class="mb-2">Drag & drop your PDF files here or click to browse</p>
+                                    <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('files').click()">
+                                        <i class="fas fa-folder-open me-2"></i>Select Files
+                                    </button>
+                                </div>
+                                <div id="file-selection-details" class="mt-3 d-none">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">Selected Files</h6>
+                                        <span id="file-count" class="badge bg-primary rounded-pill">0</span>
+                                    </div>
+                                    <div id="file-list" class="small text-muted mb-3" style="max-height: 150px; overflow-y: auto;"></div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <div class="alert alert-light border">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <p class="mb-1"><strong><i class="fas fa-file-pdf text-danger me-2"></i>Expected files:</strong></p>
+                                            <ul class="small mb-0">
+                                                <li>7 Days Summary Report</li>
+                                                <li>14 Daily Reports</li>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <p class="mb-1"><strong><i class="fas fa-calculator text-primary me-2"></i>Total:</strong></p>
+                                            <ul class="small mb-0">
+                                                <li>Typically 15 PDF files</li>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <p class="mb-1"><strong><i class="fas fa-weight-hanging text-info me-2"></i>Limits:</strong></p>
+                                            <ul class="small mb-0">
+                                                <li>50MB max per file</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg" id="upload-button">
+                                <i class="fas fa-upload me-2"></i> Process Files
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Process Information Tabs -->
+            <div class="card shadow-sm mb-5">
+                <div class="card-header bg-white border-bottom-0">
+                    <ul class="nav nav-tabs card-header-tabs" id="infoTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="instructions-tab" data-bs-toggle="tab" data-bs-target="#instructions" type="button" role="tab">Instructions</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="structure-tab" data-bs-toggle="tab" data-bs-target="#structure" type="button" role="tab">File Structure</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="features-tab" data-bs-toggle="tab" data-bs-target="#features" type="button" role="tab">Features</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body pt-4">
+                    <div class="tab-content" id="infoTabsContent">
+                        <!-- Instructions Tab -->
+                        <div class="tab-pane fade show active" id="instructions" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="process-step mb-4">
+                                        <div class="step-number">1</div>
+                                        <h5 class="step-title">Upload Files</h5>
+                                        <ul class="step-content">
+                                            <li>Upload <strong>all 15 files</strong> from your weekly report folder</li>
+                                            <li>Include the <strong>7 Days Summary Report</strong></li>
+                                            <li>Include all <strong>14 Daily Reports</strong> (Day 1-7, Day/Night)</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="process-step mb-4">
+                                        <div class="step-number">2</div>
+                                        <h5 class="step-title">Tables Extracted</h5>
+                                        <ul class="step-content">
+                                            <li><strong>Harmonic Voltage Full Time Range</strong> (Pages 2-3)</li>
+                                            <li><strong>Harmonic Current Full Time Range</strong> (Pages 8-10)</li>
+                                            <li><strong>Harmonic Voltage Daily</strong> (Pages 5-6)</li>
+                                            <li><strong>Harmonic Current Daily</strong> (Pages 12-13)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="process-step mb-4">
+                                        <div class="step-number">3</div>
+                                        <h5 class="step-title">Excel Download Format</h5>
+                                        <ul class="step-content">
+                                            <li>Separate sheets for each table type</li>
+                                            <li>Sheet naming: <code>H_[V/I][F/D]_[95/99]_[O/E]</code></li>
+                                            <li><span class="text-danger">Failed measurements highlighted in red</span></li>
+                                            <li>Bulk download includes all files with source filenames</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="alert alert-warning mt-4">
+                                        <h6><i class="fas fa-exclamation-circle me-2"></i>Important Notes</h6>
+                                        <ul class="mb-0 small">
+                                            <li>Only <strong>PDF files</strong> are accepted</li>
+                                            <li>Files are processed to extract <strong>harmonics 2-50</strong> only</li>
+                                            <li>The fundamental frequency (Harmonic 1) is automatically excluded</li>
+                                            <li>Processing starts from <strong>page 2</strong> of each PDF</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- File Structure Tab -->
+                        <div class="tab-pane fade" id="structure" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="file-structure-section mb-4">
+                                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-file-alt me-2"></i>Summary Report</h5>
+                                        <div class="list-group">
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>7_Days_Summary.pdf
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="file-structure-section">
+                                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-calendar-day me-2"></i>Day Reports (1-4)</h5>
+                                        <div class="list-group">
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_1_Day.pdf
+                                            </div>
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_1_Night.pdf
+                                            </div>
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_2_Day.pdf
+                                            </div>
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_2_Night.pdf
+                                            </div>
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_3_Day.pdf
+                                            </div>
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_3_Night.pdf
+                                            </div>
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_4_Day.pdf
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="file-structure-section">
+                                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-calendar-day me-2"></i>Day Reports (4-7)</h5>
+                                        <div class="list-group">
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_4_Night.pdf
+                                            </div>
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_5_Day.pdf
+                                            </div>
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_5_Night.pdf
+                                            </div>
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_6_Day.pdf
+                                            </div>
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_6_Night.pdf
+                                            </div>
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_7_Day.pdf
+                                            </div>
+                                            <div class="list-group-item">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>Day_7_Night.pdf
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="alert alert-info mt-4">
+                                        <p class="small mb-0"><strong><i class="fas fa-info-circle me-2"></i>Note:</strong> Actual filenames may vary, but should follow similar patterns with day numbers and time periods.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Features Tab -->
+                        <div class="tab-pane fade" id="features" role="tabpanel">
+                            <div class="row g-4">
+                                <!-- Feature 1 - Data Extraction -->
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-body p-4">
+                                            <div class="d-flex align-items-start">
+                                                <div class="bg-primary rounded-2 p-3 me-3 flex-shrink-0">
+                                                    <i class="fas fa-table text-white fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h5 class="card-title fw-semibold mb-2">Comprehensive Data Extraction</h5>
+                                                    <p class="card-text text-muted mb-0 small">Extracts all harmonic tables from your reports including voltage and current measurements for both full time range and daily periods.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Feature 2 - Time Limit Analysis -->
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-body p-4">
+                                            <div class="d-flex align-items-start">
+                                                <div class="bg-success rounded-2 p-3 me-3 flex-shrink-0">
+                                                    <i class="fas fa-chart-bar text-white fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h5 class="card-title fw-semibold mb-2">Time Limit Analysis</h5>
+                                                    <p class="card-text text-muted mb-0 small">Automatically splits data by 99% and 95% time limits for comprehensive harmonic analysis across different measurement intervals.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Feature 3 - Violation Detection -->
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-body p-4">
+                                            <div class="d-flex align-items-start">
+                                                <div class="bg-danger rounded-2 p-3 me-3 flex-shrink-0">
+                                                    <i class="fas fa-exclamation-triangle text-white fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h5 class="card-title fw-semibold mb-2">Violation Detection</h5>
+                                                    <p class="card-text text-muted mb-0 small">Identifies and highlights limit exceedances in red for quick visual identification of compliance issues and regulatory violations.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Feature 4 - Export Options -->
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-body p-4">
+                                            <div class="d-flex align-items-start">
+                                                <div class="bg-info rounded-2 p-3 me-3 flex-shrink-0">
+                                                    <i class="fas fa-file-excel text-white fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h5 class="card-title fw-semibold mb-2">Flexible Export Options</h5>
+                                                    <p class="card-text text-muted mb-0 small">Download individual reports or bulk export all data in standardized Excel format with clear sheet naming and professional formatting.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .file-upload-area {
+        background-color: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        transition: all 0.3s;
+    }
+    
+    .file-upload-area:hover {
+        border-color: #0d6efd;
+        background-color: #f0f7ff;
+    }
+    
+    .file-upload-prompt {
+        cursor: pointer;
+    }
+    
+    .process-step {
+        position: relative;
+        padding-left: 40px;
+    }
+    
+    .step-number {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 30px;
+        height: 30px;
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .step-title {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+        color: #495057;
+    }
+    
+    .step-content {
+        padding-left: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .step-content li {
+        margin-bottom: 0.3rem;
+    }
+    
+    .feature-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.05);
+    }
+    
+    .feature-icon {
+        opacity: 0.8;
+    }
+    
+    .nav-tabs .nav-link {
+        font-weight: 500;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('files');
+    const uploadForm = document.getElementById('upload-form');
+    const fileUploadArea = document.querySelector('.file-upload-area');
+    const filePrompt = document.querySelector('.file-upload-prompt');
+    const fileDetails = document.getElementById('file-selection-details');
+    const fileList = document.getElementById('file-list');
+    const fileCount = document.getElementById('file-count');
+    const uploadButton = document.getElementById('upload-button');
+    
+    // Handle drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        fileUploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        fileUploadArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        fileUploadArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+        fileUploadArea.classList.add('border-primary');
+        fileUploadArea.style.backgroundColor = '#f0f7ff';
+    }
+    
+    function unhighlight() {
+        fileUploadArea.classList.remove('border-primary');
+        fileUploadArea.style.backgroundColor = '#f8f9fa';
+    }
+    
+    fileUploadArea.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        updateFileSelection();
+    }
+    
+    // Handle file selection
+    fileInput.addEventListener('change', updateFileSelection);
+    
+    function updateFileSelection() {
+        const files = Array.from(fileInput.files);
+        const pdfFiles = files.filter(file => file.name.toLowerCase().endsWith('.pdf'));
+        
+        if (files.length > 0) {
+            filePrompt.classList.add('d-none');
+            fileDetails.classList.remove('d-none');
+            
+            // Update file list
+            fileList.innerHTML = '';
+            files.forEach(file => {
+                const isPDF = file.name.toLowerCase().endsWith('.pdf');
+                const fileItem = document.createElement('div');
+                fileItem.className = 'd-flex justify-content-between align-items-center py-1';
+                fileItem.innerHTML = `
+                    <span class="${isPDF ? '' : 'text-danger'}">
+                        <i class="fas ${isPDF ? 'fa-file-pdf text-danger' : 'fa-file-exclamation text-warning'} me-2"></i>
+                        ${file.name}
+                    </span>
+                    <small class="text-muted">${formatFileSize(file.size)}</small>
+                `;
+                fileList.appendChild(fileItem);
+            });
+            
+            // Update count and feedback
+            fileCount.textContent = files.length;
+            
+            if (pdfFiles.length !== files.length) {
+                const nonPDFCount = files.length - pdfFiles.length;
+                fileDetails.classList.add('border-warning');
+                fileDetails.classList.remove('border-success');
+            } else if (pdfFiles.length < 10) {
+                fileDetails.classList.add('border-warning');
+                fileDetails.classList.remove('border-success');
+            } else {
+                fileDetails.classList.add('border-success');
+                fileDetails.classList.remove('border-warning');
+            }
+            
+            uploadButton.disabled = false;
+        } else {
+            filePrompt.classList.remove('d-none');
+            fileDetails.classList.add('d-none');
+            uploadButton.disabled = true;
+        }
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i]);
+    }
+    
+    // Form submission feedback
+    uploadForm.addEventListener('submit', function() {
+        const originalText = uploadButton.innerHTML;
+        uploadButton.disabled = true;
+        uploadButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processing...';
+        
+        // Re-enable button after 15 seconds in case of issues
+        setTimeout(() => {
+            uploadButton.disabled = false;
+            uploadButton.innerHTML = originalText;
+        }, 15000);
+    });
+    
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

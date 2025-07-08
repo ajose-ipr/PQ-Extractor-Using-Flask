@@ -1,0 +1,23 @@
+# Logs
+app_files/app.log
+
+# Uploaded files
+app_files/uploads/
+
+# Build artifacts
+app_files.zip
+
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*.pyd
+
+# Environment
+env/
+venv/
+
+# IDEs and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
