@@ -1,0 +1,209 @@
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"> 
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"> 
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css/thd-tdd.css') }}">
+
+            <!-- NEW THD/TDD SUMMARY TABLES SECTION -->
+            <div id="thd-tdd-summary-container" class="mb-5">
+                <h3 class="mb-4 text-center">THD/TDD Summary Tables</h3>
+                
+                <!-- 1. Voltage THD Full Time Range (95th percentile) -->
+                <div class="thd-summary-section mb-4">
+                    <div class="table-title-container mb-3">
+                        <h4 class="table-title">1. Total Harmonic Distortion in Voltage circuit (THD) for short time (10 minute) values 95<sup>th</sup> percentile</h4>
+                        <div class="table-subtitle text-muted">
+                            <strong>Date: ({{ metadata.report_info.start_time }} to {{ metadata.report_info.end_time }})</strong>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover align-middle" id="voltage-thd-full-95-table">
+                            <thead class="table">
+                                <tr>
+                                    <th class="bg-primary bg-opacity-10">Day</th>
+                                    <th class="bg-primary bg-opacity-10">Recommended limit as per Std IEEE 519-2022 (%)</th>
+                                    <th class="bg-primary bg-opacity-10">R Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">Y Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">B Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="voltage-thd-full-95-tbody">
+                                {% if thd_tdd_tables and thd_tdd_tables.voltage_thd_full_95 is defined and not thd_tdd_tables.voltage_thd_full_95.empty %}
+                                    {% for _, row in thd_tdd_tables.voltage_thd_full_95.iterrows() %}
+                                    <tr>
+                                        <td class="bg-secondary bg-opacity-10 fw-semibold">{{ row['Day'] }}</td>
+                                        <td class="bg-secondary bg-opacity-10"><strong>{{ row['Recommended limit (%)'] }}</strong></td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['R Phase (%)']) if row['R Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['Y Phase (%)']) if row['Y Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['B Phase (%)']) if row['B Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10"><span class="{{ 'badge bg-danger bg-opacity-10 text-danger' if 'Exceeding' in row['Remarks'] else 'badge bg-success bg-opacity-10 text-success' }}">{{ row['Remarks'] }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td colspan="6" class="text-center text-muted">No data available</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- 2. Voltage THD Daily (99th percentile) -->
+                <div class="thd-summary-section mb-4">
+                    <div class="table-title-container mb-3">
+                        <h4 class="table-title">2. Total Harmonic Distortion in Voltage circuit (THD) for Very short time (3 second) values 99<sup>th</sup> percentile</h4>
+                        <div class="table-subtitle text-muted">
+                            <strong>Date: ({{ metadata.report_info.start_time }} to {{ metadata.report_info.end_time }})</strong>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle table-striped" id="voltage-thd-daily-99-table">
+                            <thead class="table">
+                                <tr>
+                                    <th class="bg-primary bg-opacity-10">Day</th>
+                                    <th class="bg-primary bg-opacity-10">Recommended limit as per Std IEEE 519-2022 (%)</th>
+                                    <th class="bg-primary bg-opacity-10">R Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">Y Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">B Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="voltage-thd-daily-99-tbody">
+                                {% if thd_tdd_tables and thd_tdd_tables.voltage_thd_daily_99 is defined and not thd_tdd_tables.voltage_thd_daily_99.empty %}
+                                    {% for _, row in thd_tdd_tables.voltage_thd_daily_99.iterrows() %}
+                                    <tr>
+                                        <td class="bg-secondary bg-opacity-10 fw-semibold">{{ row['Day'] }}</td>
+                                        <td class="bg-secondary bg-opacity-10"><strong>{{ row['Recommended limit (%)'] }}</strong></td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['R Phase (%)']) if row['R Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['Y Phase (%)']) if row['Y Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['B Phase (%)']) if row['B Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10"><span class="{{ 'badge bg-danger bg-opacity-10 text-danger' if 'Exceeding' in row['Remarks'] else 'badge bg-success bg-opacity-10 text-success' }}">{{ row['Remarks'] }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td colspan="6" class="text-center text-muted">No data available</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. Current TDD Full Time Range (99th percentile) -->
+                <div class="thd-summary-section mb-4">
+                    <div class="table-title-container mb-3">
+                        <h4 class="table-title">3. Total Harmonic Distortion in Current circuit (THD)/ Total Demand Distortion in Current circuit (TDD) for short time (10Minute) values 99<sup>th</sup> percentile</h4>
+                        <div class="table-subtitle text-muted">
+                            <strong>Date: ({{ metadata.report_info.start_time }} to {{ metadata.report_info.end_time }})</strong>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle table-striped" id="current-tdd-full-99-table">
+                            <thead class="table">
+                                <tr>
+                                    <th class="bg-primary bg-opacity-10">Day</th>
+                                    <th class="bg-primary bg-opacity-10">Recommended limit as per Std IEEE 519-2022 (%)</th>
+                                    <th class="bg-primary bg-opacity-10">R Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">Y Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">B Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="current-tdd-full-99-tbody">
+                                {% if thd_tdd_tables and thd_tdd_tables.current_tdd_full_99 is defined and not thd_tdd_tables.current_tdd_full_99.empty %}
+                                    {% for _, row in thd_tdd_tables.current_tdd_full_99.iterrows() %}
+                                    <tr>
+                                        <td class="bg-secondary bg-opacity-10 fw-semibold">{{ row['Day'] }}</td>
+                                        <td class="bg-secondary bg-opacity-10"><strong>{{ row['Recommended limit (%)'] }}</strong></td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['R Phase (%)']) if row['R Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['Y Phase (%)']) if row['Y Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['B Phase (%)']) if row['B Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10"><span class="{{ 'badge bg-danger bg-opacity-10 text-danger' if 'Exceeding' in row['Remarks'] else 'badge bg-success bg-opacity-10 text-success' }}">{{ row['Remarks'] }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td colspan="6" class="text-center text-muted">No data available</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4. Current TDD Full Time Range (95th percentile) -->
+                <div class="thd-summary-section mb-4">
+                    <div class="table-title-container mb-3">
+                        <h4 class="table-title">4. Total Harmonic Distortion in Current circuit (THD)/ Total Demand Distortion in Current circuit (TDD) for short time (10Minute) values 95<sup>th</sup> percentile</h4>
+                        <div class="table-subtitle text-muted">
+                            <strong>Date: ({{ metadata.report_info.start_time }} to {{ metadata.report_info.end_time }})</strong>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle table-striped" id="current-tdd-full-95-table">
+                            <thead class="table">
+                                <tr>
+                                    <th class="bg-primary bg-opacity-10">Day</th>
+                                    <th class="bg-primary bg-opacity-10">Recommended limit as per Std IEEE 519-2022 (%)</th>
+                                    <th class="bg-primary bg-opacity-10">R Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">Y Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">B Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="current-tdd-full-95-tbody">
+                                {% if thd_tdd_tables and thd_tdd_tables.current_tdd_full_95 is defined and not thd_tdd_tables.current_tdd_full_95.empty %}
+                                    {% for _, row in thd_tdd_tables.current_tdd_full_95.iterrows() %}
+                                    <tr>
+                                        <td class="bg-secondary bg-opacity-10 fw-semibold">{{ row['Day'] }}</td>
+                                        <td class="bg-secondary bg-opacity-10"><strong>{{ row['Recommended limit (%)'] }}</strong></td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['R Phase (%)']) if row['R Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['Y Phase (%)']) if row['Y Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['B Phase (%)']) if row['B Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10"><span class="{{ 'badge bg-danger bg-opacity-10 text-danger' if 'Exceeding' in row['Remarks'] else 'badge bg-success bg-opacity-10 text-success' }}">{{ row['Remarks'] }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td colspan="6" class="text-center text-muted">No data available</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 5. Current TDD Daily (99th percentile) -->
+                <div class="thd-summary-section mb-4">
+                    <div class="table-title-container mb-3">
+                        <h4 class="table-title">5. Total Harmonic Distortion in Current circuit (THD)/ Total Demand Distortion in Current circuit (TDD) for Very short time (3 second) values 99<sup>th</sup> percentile</h4>
+                        <div class="table-subtitle text-muted">
+                            <strong>Date: ({{ metadata.report_info.start_time }} to {{ metadata.report_info.end_time }})</strong>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle table-striped" id="current-tdd-daily-99-table">
+                            <thead class="table-success">
+                                <tr>
+                                    <th class="bg-primary bg-opacity-10">Day</th>
+                                    <th class="bg-primary bg-opacity-10">Recommended limit as per Std IEEE 519-2022 (%)</th>
+                                    <th class="bg-primary bg-opacity-10">R Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">Y Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">B Phase (%)</th>
+                                    <th class="bg-primary bg-opacity-10">Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="current-tdd-daily-99-tbody">
+                                {% if thd_tdd_tables and thd_tdd_tables.current_tdd_daily_99 is defined and not thd_tdd_tables.current_tdd_daily_99.empty %}
+                                    {% for _, row in thd_tdd_tables.current_tdd_daily_99.iterrows() %}
+                                    <tr>
+                                        <td class="bg-secondary bg-opacity-10 fw-semibold">{{ row['Day'] }}</td>
+                                        <td class="bg-secondary bg-opacity-10"><strong>{{ row['Recommended limit (%)'] }}</strong></td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['R Phase (%)']) if row['R Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['Y Phase (%)']) if row['Y Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10">{{ "%.3f"|format(row['B Phase (%)']) if row['B Phase (%)'] is not none else '' }}</td>
+                                        <td class="bg-secondary bg-opacity-10"><span class="{{ 'badge bg-danger bg-opacity-10 text-danger' if 'Exceeding' in row['Remarks'] else 'badge bg-success bg-opacity-10 text-success' }}">{{ row['Remarks'] }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td colspan="6" class="text-center text-muted">No data available</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>

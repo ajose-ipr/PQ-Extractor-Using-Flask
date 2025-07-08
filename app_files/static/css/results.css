@@ -1,44 +1,3 @@
-/* Custom styles for the application */
-.card {
-    margin-bottom: 2rem;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-}
-
-.card-header {
-    font-weight: bold;
-}
-
-.table-responsive {
-    overflow-x: auto;
-}
-
-/* Highlight failed measurements */
-.fail-highlight {
-    background-color: #ffebeb;
-    color: darkred;
-    font-weight: bold;
-}
-
-.harmonic-highlight {
-    background-color: #fff3cd;
-    font-weight: bold;
-}
-
-/* Custom colors for different sections */
-.voltage-section {
-    border-left: 4px solid #4A90E2;
-}
-
-.current-section {
-    border-left: 4px solid #E78400;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .card-body {
-        padding: 1rem;
-    }
-}
 
 /* FOR RESULTS.html */
 body {
@@ -407,102 +366,13 @@ body {
     .harmonic-data-table[id*="current"] td.odd-r,
     .harmonic-data-table[id*="current"] td.odd-y,
     .harmonic-data-table[id*="current"] td.odd-b {
-        background-color: #b0f0b0 !important;
+        background-color: #E8F5E8 !important;
         -webkit-print-color-adjust: exact;
         color-adjust: exact;
     }
 
     .violation-cell {
         background-color: #ffebee !important;
-        -webkit-print-color-adjust: exact;
-        color-adjust: exact;
-    }
-}
-
-/*********************************************************************************/
-/***********PAGE NUMBER STYLING FOR VIOLATIONS TABLES****************************/
-/*******************************************************************************/
-
-/* Page number styling in violations table */
-.violations-table th:nth-child(7), 
-.violations-table td:nth-child(7) {
-    width: 60px;
-    min-width: 60px;
-    text-align: center;
-}
-
-.violations-table .badge {
-    font-size: 0.75rem;
-    padding: 0.25em 0.5em;
-}
-
-/* Page statistics styling */
-.violation-stat {
-    transition: all 0.2s ease;
-    cursor: default;
-}
-
-.violation-stat:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
-}
-
-/* Page summary alert styling */
-.alert-info .badge {
-    font-size: 0.8rem;
-    margin-bottom: 0.25rem;
-}
-
-/* Responsive adjustments for page column */
-@media (max-width: 768px) {
-    .violations-table th:nth-child(7), 
-    .violations-table td:nth-child(7) {
-        width: 50px;
-        min-width: 50px;
-        font-size: 0.8rem;
-    }
-    
-    .violations-table .badge {
-        font-size: 0.7rem;
-        padding: 0.15em 0.3em;
-    }
-}
-
-/* Page number column header icon styling */
-.violations-table th .fas.fa-file-alt {
-    color: #6c757d;
-    margin-right: 2px;
-}
-
-/* Enhanced badge styling for page numbers */
-.badge.bg-secondary {
-    background-color: #6c757d !important;
-    color: white;
-    font-weight: 500;
-}
-
-/* Page range info styling */
-.text-muted.small {
-    font-size: 0.8rem;
-    font-style: italic;
-}
-
-/* Violation row hover effect with page highlighting */
-.violations-table tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-}
-
-.violations-table tbody tr:hover .badge {
-    transform: scale(1.05);
-    transition: transform 0.1s ease;
-}
-
-/* Print-specific styles for page numbers */
-@media print {
-    .violations-table .badge {
-        border: 1px solid #6c757d;
-        background-color: transparent !important;
-        color: #6c757d !important;
         -webkit-print-color-adjust: exact;
         color-adjust: exact;
     }

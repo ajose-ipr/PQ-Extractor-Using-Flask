@@ -19,12 +19,13 @@ HIGHLIGHT_COLOR = 'font-weight: bold; background-color: #fff3cd'
 VOLTAGE_COLUMNS = [
     "Harmonic", "Time Percent Limit[%]", "Reg Max[%]",
     "Measured_V1N", "Measured_V2N", "Measured_V3N", 
-    "Result_V1N", "Result_V2N", "Result_V3N"
+    "Result_V1N", "Result_V2N", "Result_V3N", "Page_Number"
 ]
+
 CURRENT_COLUMNS = [
     "Harmonic", "Time Percent Limit[%]", "Reg Max[%]",
     "Measured_I1", "Measured_I2", "Measured_I3", 
-    "Result_I1", "Result_I2", "Result_I3"
+    "Result_I1", "Result_I2", "Result_I3", "Page_Number"
 ]
 
 # Updated section boundaries for all tables
@@ -95,84 +96,6 @@ def safe_float_convert(val):
     except Exception:
         return None
 
-# --- THD SUMMARY TABLE EXTRACTION AND GENERATION ---
-
-def extract_thd_daily_data_from_pdf(pdf_file):
-    """Extract THD Daily data from PDF"""
-    voltage_thd_daily = []
-    current_tdd_daily = []
-    try:
-        with pdfplumber.open(pdf_file if isinstance(pdf_file, str) else pdf_file) as pdf:
-            for page in pdf.pages:
-                text = page.extract_text() or ""
-                # Voltage THD
-                if "Total Harmonic Distortion Daily" in text and "3sec THD" in text:
-                    tables = page.extract_tables()
-                    for table in tables:
-                        if table and len(table) > 1:
-                            for row in table:
-                                if row and len(row) >= 6:
-                                    day = str(row[0]).strip() if row[0] else ""
-                                    if re.match(r'\d{2}-\d{2}-\d{4}', day):
-                                        voltage_thd_daily.append({
-                                            "Day": day,
-                                            "V1N": safe_float_convert(row[3]),
-                                            "V2N": safe_float_convert(row[4]),
-                                            "V3N": safe_float_convert(row[5])
-                                        })
-                # Current TDD
-                if "TDD Daily" in text and "3sec TDD" in text:
-                    tables = page.extract_tables()
-                    for table in tables:
-                        if table and len(table) > 1:
-                            for row in table:
-                                if row and len(row) >= 6:
-                                    day = str(row[0]).strip() if row[0] else ""
-                                    if re.match(r'\d{2}-\d{2}-\d{4}', day):
-                                        current_tdd_daily.append({
-                                            "Day": day,
-                                            "I1": safe_float_convert(row[3]),
-                                            "I2": safe_float_convert(row[4]),
-                                            "I3": safe_float_convert(row[5])
-                                        })
-        return voltage_thd_daily, current_tdd_daily
-    except Exception as e:
-        logger.error(f"Error extracting THD data: {str(e)}")
-        return [], []
-
-def generate_thd_summary_tables_from_pdf(pdf_file):
-    """Generate THD summary tables from PDF"""
-    voltage_thd_daily, current_tdd_daily = extract_thd_daily_data_from_pdf(pdf_file)
-    voltage_data = [
-        {
-            "Day": day_data["Day"],
-            "Recommended limit (%)": 7.5,
-            "R Phase (%)": day_data["V1N"],
-            "Y Phase (%)": day_data["V2N"],
-            "B Phase (%)": day_data["V3N"],
-            "Remarks": "All values within limits" if all(
-                v is not None and v <= 7.5 for v in [day_data["V1N"], day_data["V2N"], day_data["V3N"]]
-            ) else "Some values exceed limits"
-        }
-        for day_data in voltage_thd_daily
-    ]
-    current_data = [
-        {
-            "Day": day_data["Day"],
-            "Recommended limit (%)": 10.0,
-            "R Phase (%)": day_data["I1"],
-            "Y Phase (%)": day_data["I2"],
-            "B Phase (%)": day_data["I3"],
-            "Remarks": "All values within limits" if all(
-                i is not None and i <= 10.0 for i in [day_data["I1"], day_data["I2"], day_data["I3"]]
-            ) else "Some values exceed limits"
-        }
-        for day_data in current_tdd_daily
-    ]
-    return pd.DataFrame(voltage_data), pd.DataFrame(current_data)
-
-# --- END THD SUMMARY TABLE EXTRACTION AND GENERATION ---
-
 def extract_metadata(pdf_file, filename):
     """Extract metadata from PDF file"""
     name = filename if isinstance(filename, str) else filename.name
@@ -221,8 +144,8 @@ def extract_metadata(pdf_file, filename):
         logger.error(f"Error extracting metadata: {str(e)}")
         return "Not found", "Error", "Error", "Error", report_info
 
-def extract_table_data_from_text(text, has_results=True):
-    """Enhanced text extraction for all table types"""
+def extract_table_data_from_text(text, has_results=True, page_number=None):
+    """Enhanced text extraction for all table types with page tracking"""
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'(Pass|Fail)\s*\(\s*([\d.%]+)\s*\)', r'\1(\2)', text)
     
@@ -239,11 +162,10 @@ def extract_table_data_from_text(text, has_results=True):
                     continue
                 
                 # FILTER 2: Skip non-harmonic data (years, dates, etc.)
-                # Valid harmonics are 2-50, anything outside this range is likely date/year data
                 if harmonic < 2 or harmonic > 50:
                     continue
                 
-                # FILTER 3: Additional validation - if the "harmonic" looks like a year (>1000)
+                # FILTER 3: Additional validation - if the "harmonic" looks like a year
                 if harmonic > 1000:
                     continue
                 
@@ -253,18 +175,21 @@ def extract_table_data_from_text(text, has_results=True):
                     row = [
                         harmonic, match.group(2), match.group(3), match.group(4),
                         match.group(5), match.group(6), f"{match.group(7)}({match.group(8)})",
-                        f"{match.group(9)}({match.group(10)})", f"{match.group(11)}({match.group(12)})"
+                        f"{match.group(9)}({match.group(10)})", f"{match.group(11)}({match.group(12)})",
+                        page_number
                     ]
                 elif len(groups) >= 9:  # Pattern without Pass/Fail
                     row = [
                         harmonic, match.group(2), match.group(3), match.group(4),
                         match.group(5), match.group(6), f"Pass({match.group(7)})",
-                        f"Pass({match.group(8)})", f"Pass({match.group(9)})"
+                        f"Pass({match.group(8)})", f"Pass({match.group(9)})",
+                        page_number
                     ]
                 elif len(groups) >= 6 and not has_results:  # Just measurements
                     row = [
                         harmonic, match.group(2), match.group(3), match.group(4),
-                        match.group(5), match.group(6), "N/A", "N/A", "N/A"
+                        match.group(5), match.group(6), "N/A", "N/A", "N/A",
+                        page_number
                     ]
                 else:
                     continue
@@ -275,8 +200,8 @@ def extract_table_data_from_text(text, has_results=True):
     
     return data
 
-def _extract_structured_data(page_tables, tables, active_table):
-    """Helper function to extract structured table data"""
+def _extract_structured_data(page_tables, tables, active_table, page_number):
+    """Helper function to extract structured table data with page tracking"""
     for table in page_tables:
         if len(table) > 1:
             for row in table:
@@ -298,13 +223,15 @@ def _extract_structured_data(page_tables, tables, active_table):
                         
                         if len(row) >= 9:
                             clean_row = [str(cell).strip() if cell is not None else "" for cell in row[:9]]
+                            # Add page number as the last column
+                            clean_row.append(page_number)
                             tables[active_table].append(clean_row)
                     except (ValueError, IndexError):
                         continue
 
-def _extract_text_data(text, tables, active_table):
-    """Helper function to extract text-based data"""
-    text_data = extract_table_data_from_text(text)
+def _extract_text_data(text, tables, active_table, page_number):
+    """Helper function to extract text-based data with page tracking"""
+    text_data = extract_table_data_from_text(text, page_number=page_number)
     if text_data:
         existing_harmonics = {int(row[0]) for row in tables[active_table] if row and str(row[0]).isdigit()}
         for new_row in text_data:
@@ -329,7 +256,7 @@ def _check_boundary_hit(upper_text, active_table):
     return any(boundary in upper_text for boundary in boundaries)
 
 def extract_tables_from_pdf(file):
-    """Extract all harmonic tables from PDF starting from page 2"""
+    """Extract all harmonic tables from PDF starting from page 2 with comprehensive page tracking"""
     tables = {table_name: [] for table_name in SUPPORTED_TABLES}
     
     try:
@@ -344,6 +271,11 @@ def extract_tables_from_pdf(file):
                 page_text = page.extract_text() or ""
                 upper_text = page_text.upper()
                 page_tables = page.extract_tables()
+                
+                # Actual page number (1-indexed)
+                actual_page_num = page_num + 1
+                
+                logger.info(f"Processing page {actual_page_num} for table extraction")
                 
                 # Check for table headers
                 for table_name in tables:
@@ -361,35 +293,64 @@ def extract_tables_from_pdf(file):
                         section_text = page_text[start_idx:end_idx]
                         active_table = table_name
                         
-                        # Extract structured tables
-                        _extract_structured_data(page_tables, tables, active_table)
+                        logger.info(f"Found table '{table_name}' on page {actual_page_num}")
                         
-                        # Extract from text as fallback
-                        _extract_text_data(section_text, tables, active_table)
+                        # Extract structured tables with page tracking
+                        initial_count = len(tables[active_table])
+                        _extract_structured_data(page_tables, tables, active_table, actual_page_num)
+                        new_count = len(tables[active_table])
+                        
+                        logger.info(f"Extracted {new_count - initial_count} structured rows from page {actual_page_num}")
+                        
+                        # Extract from text as fallback with page tracking
+                        initial_count = len(tables[active_table])
+                        _extract_text_data(section_text, tables, active_table, actual_page_num)
+                        new_count = len(tables[active_table])
+                        
+                        logger.info(f"Extracted {new_count - initial_count} text rows from page {actual_page_num}")
                         continue
                 
                 # Continue extracting for active table
                 if active_table and not _check_boundary_hit(upper_text, active_table):
-                    _extract_structured_data(page_tables, tables, active_table)
-                    _extract_text_data(page_text, tables, active_table)
+                    initial_count = len(tables[active_table])
+                    _extract_structured_data(page_tables, tables, active_table, actual_page_num)
+                    _extract_text_data(page_text, tables, active_table, actual_page_num)
+                    new_count = len(tables[active_table])
+                    
+                    if new_count > initial_count:
+                        logger.info(f"Continued extracting {new_count - initial_count} rows for '{active_table}' from page {actual_page_num}")
                 else:
-                    # Only reset active_table if we actually hit a real boundary, not "HARMONIC 5:"
+                    # Only reset active_table if we actually hit a real boundary
                     if active_table and _check_boundary_hit(upper_text, active_table):
-                        # Special case: Don't stop for "HARMONIC 5:" when processing Harmonic Current Daily
                         if active_table == "Harmonic Current Daily" and "HARMONIC 5:" in upper_text:
                             # Continue processing this page for the current table
-                            _extract_structured_data(page_tables, tables, active_table)
-                            _extract_text_data(page_text, tables, active_table)
+                            initial_count = len(tables[active_table])
+                            _extract_structured_data(page_tables, tables, active_table, actual_page_num)
+                            _extract_text_data(page_text, tables, active_table, actual_page_num)
+                            new_count = len(tables[active_table])
+                            
+                            if new_count > initial_count:
+                                logger.info(f"Special case: Continued extracting {new_count - initial_count} rows for '{active_table}' from page {actual_page_num}")
                         else:
+                            logger.info(f"Boundary hit for '{active_table}' on page {actual_page_num}, resetting active table")
                             active_table = None
 
     except Exception as e:
         logger.error(f"Error processing PDF: {str(e)}")
     
+    # Log final extraction results
+    for table_name, table_data in tables.items():
+        if table_data:
+            page_numbers = [row[-1] for row in table_data if len(row) > 9]
+            unique_pages = set(page_numbers)
+            logger.info(f"Table '{table_name}': {len(table_data)} rows extracted from pages: {sorted(unique_pages)}")
+        else:
+            logger.warning(f"Table '{table_name}': No data extracted")
+    
     return tables
 
 def process_table_data(table_data, table_name=None):
-    """Process and validate table data"""
+    """Process and validate table data with page number support"""
     columns = CURRENT_COLUMNS if table_name and "Current" in table_name else VOLTAGE_COLUMNS
     
     if not table_data:
@@ -404,7 +365,6 @@ def process_table_data(table_data, table_name=None):
         df = df[df['Harmonic'] != 1]
         
         # ADDITIONAL FILTER: Only keep valid harmonic range (2-50)
-        # This removes any year data (2024, 2025, etc.) that might have been captured
         df = df[(df['Harmonic'] >= 2) & (df['Harmonic'] <= 50)]
         
         df = df.drop_duplicates(subset=['Harmonic', 'Time Percent Limit[%]'])
@@ -416,9 +376,16 @@ def process_table_data(table_data, table_name=None):
         if missing:
             logger.info(f"Missing harmonics in {table_name}: {missing[:10]}{'...' if len(missing) > 10 else ''}")
         
-        numeric_cols = ["Harmonic", "Time Percent Limit[%]", "Reg Max[%]", columns[3], columns[4], columns[5]]
+        # Log page number distribution
+        if 'Page_Number' in df.columns:
+            page_distribution = df['Page_Number'].value_counts().to_dict()
+            logger.info(f"Page distribution for {table_name}: {page_distribution}")
+        
+        numeric_cols = ["Harmonic", "Time Percent Limit[%]", "Reg Max[%]", 
+                       df.columns[3], df.columns[4], df.columns[5]]
         for col in numeric_cols:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
         
         return df.dropna()
     
@@ -444,8 +411,8 @@ def split_table(df):
     
     return {"95": split_odd_even(df_95), "99": split_odd_even(df_99)}
 
-def analyze_failures(df):
-    """Identify and summarize all harmonic violations"""
+def analyze_failures(df, table_name=None):
+    """Identify and summarize all harmonic violations with comprehensive page tracking"""
     if df.empty:
         return pd.DataFrame()
     
@@ -458,6 +425,16 @@ def analyze_failures(df):
             harmonic = int(row['Harmonic'])
             time_limit = row['Time Percent Limit[%]']
             
+            # Get page number with fallback
+            page_number = row.get('Page_Number', 'Unknown')
+            if pd.isna(page_number) or page_number is None:
+                page_number = 'Unknown'
+            else:
+                try:
+                    page_number = int(page_number)
+                except (ValueError, TypeError):
+                    page_number = 'Unknown'
+            
             for col in measured_cols:
                 phase = col.split('_')[-1]  # Gets V1N/V2N/V3N or I1/I2/I3
                 value = float(row[col])
@@ -469,15 +446,30 @@ def analyze_failures(df):
                         'Time Limit (%)': time_limit,
                         'Allowed (%)': threshold,
                         'Measured (%)': value,
-                        'Exceedance (%)': round(value - threshold, 2)
+                        'Exceedance (%)': round(value - threshold, 2),
+                        'Page': page_number,
+                        'Table': table_name if table_name else 'Unknown'
                     })
-        except (ValueError, KeyError):
+                    logger.info(f"Violation found: Harmonic {harmonic}, Phase {phase}, Page {page_number}, Table {table_name}")
+        except (ValueError, KeyError) as e:
+            logger.warning(f"Error processing row for violations: {str(e)}")
             continue
     
-    return pd.DataFrame(violations)
+    violations_df = pd.DataFrame(violations)
+    
+    if not violations_df.empty:
+        # Log violations summary with page information
+        total_violations = len(violations_df)
+        unique_pages = violations_df['Page'].nunique()
+        page_distribution = violations_df['Page'].value_counts().to_dict()
+        
+        logger.info(f"Violations analysis for {table_name}: {total_violations} violations across {unique_pages} pages")
+        logger.info(f"Page distribution: {page_distribution}")
+    
+    return violations_df
 
 def highlight_fails_in_excel(df, ws, start_row=1):
-    """Apply conditional formatting to highlight failed harmonics in Excel"""
+    """Apply conditional formatting to highlight failed harmonics in Excel with page info"""
     if df.empty:
         return
     
@@ -488,6 +480,7 @@ def highlight_fails_in_excel(df, ws, start_row=1):
     reg_max_col = None
     measured_cols = []
     result_cols = []
+    page_col = None
     
     for idx, col in enumerate(df.columns, 1):
         if "Reg Max" in col:
@@ -496,9 +489,18 @@ def highlight_fails_in_excel(df, ws, start_row=1):
             measured_cols.append(idx)
         elif col.startswith('Result_'):
             result_cols.append(idx)
+        elif col == "Page_Number":
+            page_col = idx
     
     if not reg_max_col or not measured_cols:
         return
+    
+    # Add page number highlighting if available
+    if page_col:
+        page_fill = PatternFill(start_color='E3F2FD', end_color='E3F2FD', fill_type='solid')
+        for r_idx in range(start_row + 1, ws.max_row + 1):
+            page_cell = ws.cell(row=r_idx, column=page_col)
+            page_cell.fill = page_fill
     
     for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), start_row):
         if r_idx == start_row:
@@ -525,6 +527,12 @@ def highlight_fails_in_excel(df, ws, start_row=1):
                     
                     harmonic_cell = ws.cell(row=r_idx, column=1)
                     harmonic_cell.fill = harmonic_fill
+                    
+                    # Highlight page number for violations
+                    if page_col:
+                        page_cell = ws.cell(row=r_idx, column=page_col)
+                        page_cell.fill = fail_fill
+                        page_cell.font = fail_font
             except:
                 continue
 
@@ -568,36 +576,10 @@ def get_table_abbreviation(table_name):
     
     return f"{prefix}{suffix}"
 
-def create_enhanced_excel_download(tables_data, thd_tdd_tables, filename):
-    """Create Excel file with both individual harmonic tables and THD/TDD summary tables"""
+def create_excel_download(tables_data, filename):
+    """Create Excel file with all tables with highlighting and split by odd/even harmonics"""
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        
-        # Add THD/TDD Summary Tables first
-        for table_name, df in thd_tdd_tables.items():
-            if not df.empty:
-                sheet_name = f"THD_TDD_{table_name[:20]}"[:31]  # Ensure valid sheet name
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
-                
-                # Apply formatting
-                workbook = writer.book
-                worksheet = workbook[sheet_name]
-                
-                # Header formatting
-                header_fill = PatternFill(start_color='E3F2FD', end_color='E3F2FD', fill_type='solid')
-                for cell in worksheet[1]:
-                    cell.fill = header_fill
-                    cell.font = Font(bold=True)
-                
-                # Violation highlighting for remarks column
-                for row in worksheet.iter_rows(min_row=2):
-                    remarks_cell = row[-1]  # Last column should be remarks
-                    if remarks_cell.value and "Exceeding" in str(remarks_cell.value):
-                        for cell in row:
-                            cell.fill = PatternFill(start_color='FFEBEE', end_color='FFEBEE', fill_type='solid')
-                            cell.font = Font(color='D32F2F', bold=True)
-        
-        # Add individual harmonic tables
         for table_name, table_data in tables_data.items():
             if table_data:
                 df = process_table_data(table_data, table_name)
@@ -670,13 +652,10 @@ def create_bulk_excel_download(all_files_data):
     output2.seek(0)
     return output2.getvalue()
 
-# Add these functions to your processing.py file
+# THD/TDD SUMMARY TABLE FUNCTIONS
 
 def extract_thd_tdd_summary_tables_from_pdf(pdf_file):
-    """
-    Extract all THD/TDD summary tables from PDF
-    Returns: Dict with 4 table types
-    """
+    """Extract all THD/TDD summary tables from PDF"""
     tables_data = {
         'voltage_thd_full_95': [],      # 10min THD 95th percentile
         'voltage_thd_daily_99': [],     # 3sec THD 99th percentile  
@@ -727,9 +706,7 @@ def extract_thd_tdd_summary_tables_from_pdf(pdf_file):
         return tables_data
 
 def _extract_thd_table_data(page, text, table_type, percentile):
-    """
-    Helper function to extract THD/TDD data from a page
-    """
+    """Helper function to extract THD/TDD data from a page"""
     extracted_data = []
     
     try:
@@ -773,9 +750,7 @@ def _extract_thd_table_data(page, text, table_type, percentile):
     return extracted_data
 
 def _extract_thd_from_text_patterns(text, table_type, percentile):
-    """
-    Extract THD/TDD data using regex patterns as fallback
-    """
+    """Extract THD/TDD data using regex patterns as fallback"""
     extracted_data = []
     
     # Pattern to match date and values
@@ -800,9 +775,7 @@ def _extract_thd_from_text_patterns(text, table_type, percentile):
     return extracted_data
 
 def process_thd_tdd_summary_data(tables_data):
-    """
-    Process extracted THD/TDD data into formatted DataFrames
-    """
+    """Process extracted THD/TDD data into formatted DataFrames"""
     processed_tables = {}
     
     for table_key, raw_data in tables_data.items():
@@ -826,9 +799,7 @@ def process_thd_tdd_summary_data(tables_data):
     return processed_tables
 
 def _generate_thd_remarks(row):
-    """
-    Generate remarks for THD/TDD rows based on limit compliance
-    """
+    """Generate remarks for THD/TDD rows based on limit compliance"""
     limit = row["Limit"]
     phases = [row["R_Phase"], row["Y_Phase"], row["B_Phase"]]
     
@@ -842,5 +813,56 @@ def _generate_thd_remarks(row):
     else:
         return "All values within limits"
 
-
-
+def create_enhanced_excel_download(tables_data, thd_tdd_tables, filename):
+    """Create Excel file with both individual harmonic tables and THD/TDD summary tables"""
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        
+        # Add THD/TDD Summary Tables first
+        for table_name, df in thd_tdd_tables.items():
+            if not df.empty:
+                sheet_name = f"THD_TDD_{table_name[:20]}"[:31]  # Ensure valid sheet name
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+                
+                # Apply formatting
+                workbook = writer.book
+                worksheet = workbook[sheet_name]
+                
+                # Header formatting
+                header_fill = PatternFill(start_color='E3F2FD', end_color='E3F2FD', fill_type='solid')
+                for cell in worksheet[1]:
+                    cell.fill = header_fill
+                    cell.font = Font(bold=True)
+                
+                # Violation highlighting for remarks column
+                for row in worksheet.iter_rows(min_row=2):
+                    remarks_cell = row[-1]  # Last column should be remarks
+                    if remarks_cell.value and "Exceeding" in str(remarks_cell.value):
+                        for cell in row:
+                            cell.fill = PatternFill(start_color='FFEBEE', end_color='FFEBEE', fill_type='solid')
+                            cell.font = Font(color='D32F2F', bold=True)
+        
+        # Add individual harmonic tables
+        for table_name, table_data in tables_data.items():
+            if table_data:
+                df = process_table_data(table_data, table_name)
+                if not df.empty:
+                    split_dfs = split_table(df)
+                    
+                    table_prefix = "I" if "Current" in table_name else "V"
+                    table_suffix = "D" if "Daily" in table_name else "F"
+                    
+                    for limit in ["95", "99"]:
+                        odd_df, even_df = split_dfs[limit]
+                        
+                        for df_data, suffix in [(odd_df, 'O'), (even_df, 'E')]:
+                            if not df_data.empty:
+                                sheet_name = f"H_{table_prefix}{table_suffix}_{limit}_{suffix}"[:31]
+                                df_data.to_excel(writer, sheet_name=sheet_name, index=False)
+                                
+                                workbook = writer.book
+                                worksheet = workbook[sheet_name]
+                                highlight_fails_in_excel(df_data, worksheet, start_row=2)
+    
+    output.seek(0)
+    return output.getvalue()

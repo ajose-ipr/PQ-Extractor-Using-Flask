@@ -1,0 +1,67 @@
+.file-upload-area {
+    background-color: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    transition: all 0.3s;
+}
+
+.file-upload-area:hover {
+    border-color: #0d6efd;
+    background-color: #f0f7ff;
+}
+
+.file-upload-prompt {
+    cursor: pointer;
+}
+
+.process-step {
+    position: relative;
+    padding-left: 40px;
+}
+
+.step-number {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 30px;
+    height: 30px;
+    background-color: #0d6efd;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.step-title {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.step-content {
+    padding-left: 1rem;
+    font-size: 0.9rem;
+}
+
+.step-content li {
+    margin-bottom: 0.3rem;
+}
+
+.feature-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 100%;
+}
+
+.feature-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+}
+
+.feature-icon {
+    opacity: 0.8;
+}
+
+.nav-tabs .nav-link {
+    font-weight: 500;
+}

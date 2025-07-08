@@ -1,6 +1,6 @@
 /**
- * Harmonic Analysis JavaScript Module
- * Updated version with exact value display and improved remarks logic
+ * Harmonic Analysis JavaScript Module v3
+ * Enhanced version with improved page tracking and professional styling support
  */
 
 class HarmonicAnalysis {
@@ -14,21 +14,32 @@ class HarmonicAnalysis {
             'current-full-99': ['Harmonic Current Full Time Range', '99'],
             'current-full-95': ['Harmonic Current Full Time Range', '95']
         };
+        this.version = 'v3';
+        this.debug = true;
     }
     
     /**
      * Initialize the harmonic analysis system
      */
     init() {
-        console.log('Initializing Harmonic Analysis...');
-        console.log('Backend data:', this.backendData);
+        this.log('Initializing Harmonic Analysis v3...');
+        this.log('Backend data keys:', Object.keys(this.backendData));
         
         this.processBackendData();
         this.generateAllTables();
         this.setupEventListeners();
-        this.populateThdTddTables();
+        this.enhanceTableStyling();
         
-        console.log('Harmonic Analysis initialized successfully');
+        this.log('Harmonic Analysis v3 initialized successfully');
+    }
+    
+    /**
+     * Enhanced logging for v3
+     */
+    log(message, ...args) {
+        if (this.debug) {
+            console.log(`[HarmonicAnalysis-v3] ${message}`, ...args);
+        }
     }
     
     /**
@@ -41,24 +52,34 @@ class HarmonicAnalysis {
                 even: this.processHarmonics(tableData.even, 'even', key),
                 odd: this.processHarmonics(tableData.odd, 'odd', key)
             };
+            this.log(`Processed table data for: ${key}`);
         });
     }
     
     /**
-     * Process harmonic data for even or odd harmonics
+     * Process harmonic data for even or odd harmonics with enhanced validation
      */
     processHarmonics(records, type, tableKey) {
         const processed = {};
         
-        if (!Array.isArray(records)) return processed;
+        if (!Array.isArray(records)) {
+            this.log(`Warning: Records for ${tableKey}-${type} is not an array:`, records);
+            return processed;
+        }
         
-        records.forEach(row => {
+        records.forEach((row, index) => {
             const harmonic = parseInt(row.Harmonic);
             const isVoltage = tableKey.includes('Voltage');
             
-            // Validate harmonic number
-            if (type === 'even' && (harmonic < 2 || harmonic > 50 || harmonic % 2 !== 0)) return;
-            if (type === 'odd' && (harmonic < 3 || harmonic > 49 || harmonic % 2 === 0)) return;
+            // Enhanced validation for v3
+            if (type === 'even' && (harmonic < 2 || harmonic > 50 || harmonic % 2 !== 0)) {
+                this.log(`Skipping invalid even harmonic ${harmonic} in ${tableKey}`);
+                return;
+            }
+            if (type === 'odd' && (harmonic < 3 || harmonic > 49 || harmonic % 2 === 0)) {
+                this.log(`Skipping invalid odd harmonic ${harmonic} in ${tableKey}`);
+                return;
+            }
             
             // Extract measured values based on table type
             const r_val = parseFloat(row[isVoltage ? 'Measured_V1N' : 'Measured_I1']) || 0;
@@ -66,22 +87,23 @@ class HarmonicAnalysis {
             const b_val = parseFloat(row[isVoltage ? 'Measured_V3N' : 'Measured_I3']) || 0;
             const limit = parseFloat(row['Reg Max[%]']) || 0;
             
+            // v3: Enhanced page number extraction with fallback
+            let pageNumber = 'Unknown';
+            if (row['Page_Number'] !== undefined && row['Page_Number'] !== null && row['Page_Number'] !== '') {
+                pageNumber = parseInt(row['Page_Number']) || 'Unknown';
+            }
+            
             processed[harmonic] = {
                 values: [r_val, y_val, b_val],
-                limit: limit
+                limit: limit,
+                pageNumber: pageNumber,  // v3: Store page number
+                tableKey: tableKey,      // v3: Store table key for debugging
+                rowIndex: index         // v3: Store row index for debugging
             };
         });
         
+        this.log(`Processed ${Object.keys(processed).length} ${type} harmonics for ${tableKey}`);
         return processed;
-    }
-
-    /**
-     * Populate THD/TDD tables (if they need dynamic population)
-     */
-    populateThdTddTables() {
-        // This method can be used if you need to populate THD/TDD tables dynamically
-        // Currently, they are populated by the backend template, but this provides flexibility
-        console.log('THD/TDD tables populated from backend template');
     }
     
     /**
@@ -93,6 +115,7 @@ class HarmonicAnalysis {
         // Try exact match first
         const exactKey = `${tableName}_${limit}`;
         if (this.processedData[exactKey]) {
+            this.log(`Found exact match: ${exactKey} for ${tableId}`);
             return exactKey;
         }
         
@@ -108,18 +131,18 @@ class HarmonicAnalysis {
         for (let pattern of searchPatterns) {
             for (let key in this.processedData) {
                 if (key.includes(pattern) && key.includes(limit)) {
-                    console.log(`Found match: ${key} for pattern: ${pattern}_${limit}`);
+                    this.log(`Found pattern match: ${key} for pattern: ${pattern}_${limit}`);
                     return key;
                 }
             }
         }
         
-        console.log(`No backend data found for table: ${tableId}, searched for: ${tableName}_${limit}`);
+        this.log(`No backend data found for table: ${tableId}, searched for: ${tableName}_${limit}`);
         return null;
     }
     
     /**
-     * Generate all harmonic tables
+     * Generate all harmonic tables with enhanced features
      */
     generateAllTables() {
         const tables = [
@@ -133,22 +156,26 @@ class HarmonicAnalysis {
         const tableResults = {};
         
         tables.forEach(tableId => {
+            this.log(`Generating table: ${tableId}`);
             tableResults[tableId] = this.generateHarmonicTable(tableId);
         });
         
         this.logViolationSummary(tableResults);
-        this.displayMissingHarmonicsSummary(); // ADDED: Display missing harmonics summary
+        this.displayMissingHarmonicsSummary();
+        this.enhanceGeneratedTables();
     }
     
     /**
-     * Generate a single harmonic table
-     * MODIFIED: Added table-level violation tracking for improved remarks logic
+     * Generate a single harmonic table with enhanced features
      */
     generateHarmonicTable(tableId) {
         const tbody = document.getElementById(tableId + '-tbody');
         if (!tbody) {
-            console.warn(`Table body not found for: ${tableId}`);
-            return { hasViolations: false, violationDetails: [] };
+            this.log(`Warning: Table body not found for: ${tableId}`);
+            
+            // v3: Create table structure if it doesn't exist
+            this.createTableStructure(tableId);
+            return { hasViolations: false, violationDetails: [], missingHarmonics: { even: [], odd: [] } };
         }
         
         const dataKey = this.findBackendDataKey(tableId);
@@ -164,21 +191,18 @@ class HarmonicAnalysis {
         let hasViolations = false;
         let violationDetails = [];
         
-        // CHANGE 1: Pre-scan the entire table to detect any violations
-        // This is needed to implement the new remarks logic
+        // Pre-scan for violations
         let tableHasAnyViolations = false;
         for (let i = 0; i < maxRows; i++) {
             const evenHarmonic = evenHarmonics[i];
             const oddHarmonic = oddHarmonics[i];
             
-            // Check even harmonic for violations
             const evenData = data.even[evenHarmonic];
             if (evenData && evenData.limit) {
                 const evenViolations = evenData.values.some(val => val > evenData.limit);
                 if (evenViolations) tableHasAnyViolations = true;
             }
             
-            // Check odd harmonic for violations
             const oddData = data.odd[oddHarmonic];
             if (oddData && oddData.limit) {
                 const oddViolations = oddData.values.some(val => val > oddData.limit);
@@ -193,17 +217,16 @@ class HarmonicAnalysis {
             const evenHarmonic = evenHarmonics[i];
             const oddHarmonic = oddHarmonics[i];
             
-            // Process even harmonic
+            // Process harmonics with enhanced page tracking
             const evenResult = this.processHarmonicRow(
                 evenHarmonic, data.even, 'even', tableId
             );
             
-            // Process odd harmonic  
             const oddResult = this.processHarmonicRow(
                 oddHarmonic, data.odd, 'odd', tableId
             );
             
-            // Add even harmonic cells with proper classes
+            // Add cells with proper classes and page tracking
             row.appendChild(this.createHarmonicCell(evenHarmonic, 'even-harmonic'));
             row.appendChild(this.createLimitCell(evenResult.limit, 'even-limit'));
             evenResult.cells.forEach((cell, index) => {
@@ -212,7 +235,6 @@ class HarmonicAnalysis {
                 row.appendChild(cell);
             });
             
-            // Add odd harmonic cells with proper classes
             row.appendChild(this.createHarmonicCell(oddHarmonic, 'odd-harmonic'));
             row.appendChild(this.createLimitCell(oddResult.limit, 'odd-limit'));
             oddResult.cells.forEach((cell, index) => {
@@ -221,7 +243,7 @@ class HarmonicAnalysis {
                 row.appendChild(cell);
             });
             
-            // CHANGE 2: Modified remarks cell creation to pass additional context
+            // Enhanced remarks with page info
             const allViolations = [...evenResult.violations, ...oddResult.violations];
             const violatingHarmonics = [];
             if (evenResult.violations.length > 0) violatingHarmonics.push(evenHarmonic);
@@ -244,49 +266,258 @@ class HarmonicAnalysis {
             tbody.appendChild(row);
         }
         
-        // CHANGE 1: Detect and log missing harmonics for this table
+        // Detect missing harmonics
         const missingHarmonics = this.detectMissingHarmonics(tableId, data, evenHarmonics, oddHarmonics);
         if (missingHarmonics.even.length > 0 || missingHarmonics.odd.length > 0) {
-            console.log(`Missing harmonics in table ${tableId}:`, missingHarmonics);
+            this.log(`Missing harmonics in table ${tableId}:`, missingHarmonics);
         }
 
         return { hasViolations, violationDetails, missingHarmonics };
     }
     
     /**
-     * Detect missing harmonics in a table
-     * UPDATED: Only consider harmonics missing if R, Y, B fields are blank (null/undefined), not zero
+     * v3: Create table structure if it doesn't exist
+     */
+    createTableStructure(tableId) {
+        const container = document.getElementById('harmonic-tables-container');
+        if (!container) return;
+        
+        const tableConfig = this.getTableConfiguration(tableId);
+        if (!tableConfig) return;
+        
+        const tableSection = document.createElement('div');
+        tableSection.className = 'harmonic-table-section mb-5';
+        tableSection.innerHTML = `
+            <div class="table-title-container mb-3">
+                <h4 class="table-title underlined">${tableConfig.title}</h4>
+                <div class="table-subtitle">
+                    <strong>${tableConfig.subtitle}</strong>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="harmonic-data-table" id="${tableId}-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" class="harmonic-col even-harmonic">Even Harmonic</th>
+                            <th rowspan="2" class="limit-col even-limit">Recommended Limits as per Std IEEE 519-2022 (%)</th>
+                            <th colspan="3" class="even-measured-header">Measured max [%]</th>
+                            <th rowspan="2" class="harmonic-col odd-harmonic">Odd Harmonic</th>
+                            <th rowspan="2" class="limit-col odd-limit">Recommended Limits as per Std IEEE 519-2022 (%)</th>
+                            <th colspan="3" class="odd-measured-header">Measured max [%]</th>
+                            <th rowspan="2" class="remarks-col remarks">Remarks</th>
+                        </tr>
+                        <tr>
+                            <th class="phase-header even-phase">R</th>
+                            <th class="phase-header even-phase">Y</th>
+                            <th class="phase-header even-phase">B</th>
+                            <th class="phase-header odd-phase">R</th>
+                            <th class="phase-header odd-phase">Y</th>
+                            <th class="phase-header odd-phase">B</th>
+                        </tr>
+                    </thead>
+                    <tbody id="${tableId}-tbody">
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        container.appendChild(tableSection);
+        this.log(`Created table structure for: ${tableId}`);
+    }
+    
+    /**
+     * v3: Get table configuration
+     */
+    getTableConfiguration(tableId) {
+        const configs = {
+            'voltage-daily': {
+                title: '3. Individual Voltage Harmonic distortion measurement for very short time (3second) values 99th percentile',
+                subtitle: 'Date: (Voltage Daily Analysis)'
+            },
+            'voltage-full': {
+                title: '4. Individual Voltage Harmonic distortion measurement for short time (10 Minutes) values 95th percentile',
+                subtitle: 'Date: (Voltage Full Range Analysis)'
+            },
+            'current-daily': {
+                title: '5. Individual Current Harmonic distortion measurement for very short time (3second) values 99th percentile',
+                subtitle: 'Date: (Current Daily Analysis)'
+            },
+            'current-full-99': {
+                title: '6. Individual Current Harmonic distortion measurement for short time (10 Minute) values 99th percentile',
+                subtitle: 'Date: (Current Full Range 99th Analysis)'
+            },
+            'current-full-95': {
+                title: '7. Individual Current Harmonic distortion measurement for short time (10 Minute) values 95th percentile',
+                subtitle: 'Date: (Current Full Range 95th Analysis)'
+            }
+        };
+        
+        return configs[tableId] || null;
+    }
+    
+    /**
+     * Process a single harmonic row with enhanced value display
+     */
+    processHarmonicRow(harmonic, data, type, tableId) {
+        const harmonicData = data[harmonic];
+        const limit = harmonicData ? harmonicData.limit : null;
+        const values = harmonicData ? harmonicData.values : [null, null, null];
+        const pageNumber = harmonicData ? harmonicData.pageNumber : 'Unknown';
+        
+        const cells = [];
+        const violations = [];
+        
+        for (let j = 0; j < 3; j++) {
+            const cell = document.createElement('td');
+            const value = values[j];
+            
+            if (value !== null && value !== undefined) {
+                // v3: Display exact value with enhanced formatting
+                cell.textContent = value.toString();
+                cell.title = `Page: ${pageNumber}, Value: ${value}`; // v3: Enhanced tooltip
+                
+                if (limit && value > limit) {
+                    cell.classList.add('violation-cell');
+                    cell.setAttribute('data-page', pageNumber); // v3: Store page number
+                    violations.push(['R', 'Y', 'B'][j]);
+                }
+            } else {
+                cell.textContent = '';
+                cell.title = `Page: ${pageNumber}, No data available`;
+            }
+            
+            cells.push(cell);
+        }
+        
+        return { limit, cells, violations, pageNumber };
+    }
+    
+    /**
+     * Create harmonic number cell with enhanced styling
+     */
+    createHarmonicCell(harmonic, className) {
+        const cell = document.createElement('td');
+        cell.textContent = harmonic || '';
+        cell.className = className;
+        cell.setAttribute('data-harmonic', harmonic);
+        return cell;
+    }
+    
+    /**
+     * Create limit cell with enhanced styling
+     */
+    createLimitCell(limit, className) {
+        const cell = document.createElement('td');
+        cell.innerHTML = limit ? `<strong>${limit}</strong>` : '';
+        cell.className = className;
+        cell.setAttribute('data-limit', limit || '');
+        return cell;
+    }
+    
+    /**
+     * Create remarks cell with enhanced logic
+     */
+    createRemarksCell(violations, isFirstRow, tableHasAnyViolations, violatingHarmonics) {
+        const cell = document.createElement('td');
+        cell.className = 'remarks';
+        
+        if (violations.length > 0) {
+            const harmonicsList = violatingHarmonics.join(', ');
+            cell.innerHTML = `<span class="remarks-violation">Value at ${harmonicsList} exceeding</span>`;
+        } else if (isFirstRow && !tableHasAnyViolations) {
+            cell.innerHTML = '<span class="remarks-pass">All values are within limits.</span>';
+        }
+        
+        return cell;
+    }
+    
+    /**
+     * ENHANCED: Detect missing harmonics in a table with page context
      */
     detectMissingHarmonics(tableId, data, expectedEvenHarmonics, expectedOddHarmonics) {
         const missingEven = [];
         const missingOdd = [];
         
-        // Check for missing even harmonics
+        // Get available pages from existing data for context
+        const availablePages = this.getAvailablePagesForTable(tableId, data);
+        
         expectedEvenHarmonics.forEach(harmonic => {
             if (!data.even[harmonic] || !data.even[harmonic].values || 
                 data.even[harmonic].values.every(val => val === null || val === undefined)) {
-                missingEven.push(harmonic);
+                
+                // Find which pages might have contained this harmonic
+                const expectedPages = this.getExpectedPagesForHarmonic(harmonic, 'even', availablePages);
+                
+                missingEven.push({
+                    harmonic: harmonic,
+                    expectedPages: expectedPages,
+                    type: 'even'
+                });
             }
         });
         
-        // Check for missing odd harmonics
         expectedOddHarmonics.forEach(harmonic => {
             if (!data.odd[harmonic] || !data.odd[harmonic].values ||
                 data.odd[harmonic].values.every(val => val === null || val === undefined)) {
-                missingOdd.push(harmonic);
+                
+                // Find which pages might have contained this harmonic
+                const expectedPages = this.getExpectedPagesForHarmonic(harmonic, 'odd', availablePages);
+                
+                missingOdd.push({
+                    harmonic: harmonic,
+                    expectedPages: expectedPages,
+                    type: 'odd'
+                });
             }
         });
         
-        return {
-            even: missingEven,
-            odd: missingOdd,
-            tableId: tableId
+        return { 
+            even: missingEven, 
+            odd: missingOdd, 
+            tableId: tableId,
+            availablePages: availablePages
         };
     }
     
     /**
-     * Display missing harmonics summary in the UI
-     * ADDED: New method to show missing harmonics information to users
+     * NEW: Get available pages from existing data for a table
+     */
+    getAvailablePagesForTable(tableId, data) {
+        const pages = new Set();
+        
+        // Collect pages from even harmonics
+        Object.values(data.even || {}).forEach(harmonicData => {
+            if (harmonicData.pageNumber && harmonicData.pageNumber !== 'Unknown') {
+                pages.add(harmonicData.pageNumber);
+            }
+        });
+        
+        // Collect pages from odd harmonics
+        Object.values(data.odd || {}).forEach(harmonicData => {
+            if (harmonicData.pageNumber && harmonicData.pageNumber !== 'Unknown') {
+                pages.add(harmonicData.pageNumber);
+            }
+        });
+        
+        return Array.from(pages).sort((a, b) => a - b);
+    }
+    
+    /**
+     * NEW: Determine which pages might have contained a missing harmonic
+     */
+    getExpectedPagesForHarmonic(harmonic, type, availablePages) {
+        // If we have available pages, the missing harmonic was likely expected on those same pages
+        if (availablePages.length > 0) {
+            return availablePages;
+        }
+        
+        // If no page context available, return unknown
+        return ['Unknown'];
+    }
+    
+    /**
+     * ENHANCED: Display missing harmonics summary in the UI with page information
      */
     displayMissingHarmonicsSummary() {
         const tables = [
@@ -317,24 +548,22 @@ class HarmonicAnalysis {
             }
         });
         
-        // Update the missing harmonics section in the HTML
         this.updateMissingHarmonicsUI(allMissingHarmonics);
     }
     
     /**
-     * Update the missing harmonics UI section
-     * ADDED: Method to populate the HTML section with missing harmonics data
+     * ENHANCED: Update the missing harmonics UI section with page information
      */
     updateMissingHarmonicsUI(allMissingHarmonics) {
         const container = document.getElementById('missing-harmonics-container');
         if (!container) {
-            console.warn('Missing harmonics container not found in HTML');
+            this.log('Warning: Missing harmonics container not found in HTML');
             return;
         }
         
         if (allMissingHarmonics.length === 0) {
             container.innerHTML = `
-                <div class="alert alert-success">
+                <div class="alert alert-success border-0 shadow-sm">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-check-circle fs-4 me-3"></i>
                         <div>
@@ -359,8 +588,22 @@ class HarmonicAnalysis {
         
         allMissingHarmonics.forEach(tableInfo => {
             htmlContent += `
-                <div class="missing-table-section mb-3">
-                    <h6 class="fw-bold text-dark mb-2">${tableInfo.tableName}</h6>
+                <div class="missing-table-section mb-4">
+                    <h6 class="fw-bold text-dark mb-3">${tableInfo.tableName}</h6>
+                    
+                    <!-- Page Context Information -->
+                    <div class="alert alert-info mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-file-alt me-2"></i>
+                            <div>
+                                <strong>Page Context:</strong> 
+                                ${tableInfo.missing.availablePages.length > 0 
+                                    ? `Missing harmonics were expected on pages: ${tableInfo.missing.availablePages.join(', ')}`
+                                    : 'No page information available for this table'}
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="row">
             `;
             
@@ -368,11 +611,30 @@ class HarmonicAnalysis {
                 htmlContent += `
                     <div class="col-md-6">
                         <div class="missing-harmonics-group p-3 bg-light rounded">
-                            <strong class="text-primary">Missing Even Harmonics:</strong>
-                            <div class="mt-2">
-                                ${tableInfo.missing.even.map(h => `<span class="badge bg-secondary me-1">${h}</span>`).join('')}
+                            <strong class="text-primary mb-2 d-block">
+                                <i class="fas fa-minus-circle me-1"></i>Missing Even Harmonics:
+                            </strong>
+                            <div class="missing-harmonics-list">
+                `;
+                
+                tableInfo.missing.even.forEach(missingHarmonic => {
+                    const pagesText = missingHarmonic.expectedPages.includes('Unknown') 
+                        ? 'Page: Unknown' 
+                        : `Expected on pages: ${missingHarmonic.expectedPages.join(', ')}`;
+                    
+                    htmlContent += `
+                        <div class="missing-harmonic-item mb-2">
+                            <span class="badge bg-secondary me-2">H${missingHarmonic.harmonic}</span>
+                            <small class="text-muted">${pagesText}</small>
+                        </div>
+                    `;
+                });
+                
+                htmlContent += `
                             </div>
-                            <small class="text-muted d-block mt-1">Total: ${tableInfo.missing.even.length} harmonics</small>
+                            <small class="text-muted d-block mt-2">
+                                <strong>Total: ${tableInfo.missing.even.length} even harmonics</strong>
+                            </small>
                         </div>
                     </div>
                 `;
@@ -382,105 +644,65 @@ class HarmonicAnalysis {
                 htmlContent += `
                     <div class="col-md-6">
                         <div class="missing-harmonics-group p-3 bg-light rounded">
-                            <strong class="text-success">Missing Odd Harmonics:</strong>
-                            <div class="mt-2">
-                                ${tableInfo.missing.odd.map(h => `<span class="badge bg-secondary me-1">${h}</span>`).join('')}
+                            <strong class="text-success mb-2 d-block">
+                                <i class="fas fa-minus-circle me-1"></i>Missing Odd Harmonics:
+                            </strong>
+                            <div class="missing-harmonics-list">
+                `;
+                
+                tableInfo.missing.odd.forEach(missingHarmonic => {
+                    const pagesText = missingHarmonic.expectedPages.includes('Unknown') 
+                        ? 'Page: Unknown' 
+                        : `Expected on pages: ${missingHarmonic.expectedPages.join(', ')}`;
+                    
+                    htmlContent += `
+                        <div class="missing-harmonic-item mb-2">
+                            <span class="badge bg-secondary me-2">H${missingHarmonic.harmonic}</span>
+                            <small class="text-muted">${pagesText}</small>
+                        </div>
+                    `;
+                });
+                
+                htmlContent += `
                             </div>
-                            <small class="text-muted d-block mt-1">Total: ${tableInfo.missing.odd.length} harmonics</small>
+                            <small class="text-muted d-block mt-2">
+                                <strong>Total: ${tableInfo.missing.odd.length} odd harmonics</strong>
+                            </small>
                         </div>
                     </div>
                 `;
             }
-            
-            htmlContent += `
-                    </div>
-                </div>
-            `;
+        });
+        
+        // Add global summary
+        const totalMissingEven = allMissingHarmonics.reduce((sum, table) => sum + table.missing.even.length, 0);
+        const totalMissingOdd = allMissingHarmonics.reduce((sum, table) => sum + table.missing.odd.length, 0);
+        const uniquePages = new Set();
+        allMissingHarmonics.forEach(table => {
+            table.missing.availablePages.forEach(page => {
+                if (page !== 'Unknown') uniquePages.add(page);
+            });
         });
         
         htmlContent += `
+                            <div class="col-md-3">
+                                <div class="bg-white p-2 rounded">
+                                    <strong class="text-info fs-4">${totalMissingEven + totalMissingOdd}</strong>
+                                    <br><small>Total Missing</small>
+                                </div>
+                            </div>
+                        <div class="mt-2 text-center">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Page numbers refer to the original PDF report where harmonics were expected
+                            </small>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
         
         container.innerHTML = htmlContent;
-    }
-    
-    /**
-     * Process a single harmonic row (even or odd)
-     * MODIFIED: Removed decimal formatting to show exact backend values
-     */
-    processHarmonicRow(harmonic, data, type, tableId) {
-        const harmonicData = data[harmonic];
-        const limit = harmonicData ? harmonicData.limit : null;
-        const values = harmonicData ? harmonicData.values : [null, null, null];
-        
-        const cells = [];
-        const violations = [];
-        
-        for (let j = 0; j < 3; j++) {
-            const cell = document.createElement('td');
-            const value = values[j];
-            
-            if (value !== null) {
-                // CHANGE 3: Display exact value instead of formatting to 3 decimal places
-                // WHY: User requested exact backend values instead of rounded values
-                // HOW: Removed .toFixed(3) and use direct value conversion
-                cell.textContent = value.toString();
-                
-                if (limit && value > limit) {
-                    cell.classList.add('violation-cell');
-                    violations.push(['R', 'Y', 'B'][j]);
-                }
-            } else {
-                cell.textContent = ''; // Leave blank if no value
-            }
-            
-            cells.push(cell);
-        }
-        
-        return { limit, cells, violations };
-    }
-    
-    /**
-     * Create harmonic number cell with proper class
-     */
-    createHarmonicCell(harmonic, className) {
-        const cell = document.createElement('td');
-        cell.textContent = harmonic || '';
-        cell.className = className;
-        return cell;
-    }
-    
-    /**
-     * Create limit cell with proper class
-     */
-    createLimitCell(limit, className) {
-        const cell = document.createElement('td');
-        cell.innerHTML = limit ? `<strong>${limit}</strong>` : '';
-        cell.className = className;
-        return cell;
-    }
-    
-    /**
-     * Create remarks cell
-     * MODIFIED: Implemented new if-else logic for violation reporting
-     */
-    createRemarksCell(violations, isFirstRow, tableHasAnyViolations, violatingHarmonics) {
-        const cell = document.createElement('td');
-        cell.className = 'remarks';
-        
-        if (violations.length > 0) {
-            // If current row has violations, show specific harmonic numbers
-            const harmonicsList = violatingHarmonics.join(', ');
-            cell.innerHTML = `<span class="remarks-violation">Value at ${harmonicsList} exceeding</span>`;
-        } else if (isFirstRow && !tableHasAnyViolations) {
-            // Only show "All values within limits" on first row IF no violations exist in entire table
-            cell.innerHTML = '<span class="remarks-pass">All values are within limits.</span>';
-        }
-        // If violations exist elsewhere in table but not in current row, leave cell empty
-        
-        return cell;
     }
     
     /**
@@ -491,50 +713,219 @@ class HarmonicAnalysis {
         
         Object.entries(tableResults).forEach(([tableId, result]) => {
             if (result.hasViolations) {
-                console.log(`Table ${tableId} has violations:`, result.violationDetails);
+                this.log(`Table ${tableId} has violations:`, result.violationDetails);
                 totalViolations += result.violationDetails.length;
             }
         });
         
-        console.log(`Total violations found: ${totalViolations}`);
+        this.log(`Total violations found: ${totalViolations}`);
     }
     
     /**
-     * Setup event listeners
+     * v3: Enhanced table styling
      */
-    setupEventListeners() {
-        // Add hover effects to violation statistics
-        document.querySelectorAll('.violation-stat').forEach(stat => {
-            stat.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-2px)';
-                this.style.boxShadow = '0 0.5rem 1rem rgba(0, 0, 0, 0.08)';
-            });
-            
-            stat.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0)';
-                this.style.boxShadow = 'none';
-            });
+    enhanceTableStyling() {
+        // Add smooth animations to all tables
+        const tables = document.querySelectorAll('.harmonic-data-table, .thd-summary-table');
+        tables.forEach((table, index) => {
+            table.style.animationDelay = `${index * 0.1}s`;
+            table.classList.add('fade-in-animation');
+        });
+        
+        // Add hover effects to violation cells
+        document.addEventListener('mouseover', (e) => {
+            if (e.target.classList.contains('violation-cell')) {
+                e.target.style.transform = 'scale(1.05)';
+                e.target.style.transition = 'transform 0.2s ease';
+            }
+        });
+        
+        document.addEventListener('mouseout', (e) => {
+            if (e.target.classList.contains('violation-cell')) {
+                e.target.style.transform = 'scale(1)';
+            }
         });
     }
     
     /**
-     * Download formatted Word document with proper page breaks
+     * v3: Enhance generated tables with additional features
+     */
+    enhanceGeneratedTables() {
+        // Add table-specific classes for styling
+        const tables = document.querySelectorAll('.harmonic-data-table');
+        tables.forEach(table => {
+            const tableId = table.id;
+            if (tableId.includes('voltage')) {
+                table.classList.add('voltage-table');
+            } else if (tableId.includes('current')) {
+                table.classList.add('current-table');
+            }
+        });
+        
+        // Add interactive features
+        this.addTableInteractivity();
+    }
+    
+    /**
+     * v3: Add interactive features to tables
+     */
+    addTableInteractivity() {
+        // Add click handlers for harmonic cells
+        document.addEventListener('click', (e) => {
+            if (e.target.hasAttribute('data-harmonic')) {
+                const harmonic = e.target.getAttribute('data-harmonic');
+                this.highlightHarmonicAcrossTables(harmonic);
+            }
+        });
+        
+        // Add double-click to show harmonic details
+        document.addEventListener('dblclick', (e) => {
+            if (e.target.hasAttribute('data-harmonic')) {
+                const harmonic = e.target.getAttribute('data-harmonic');
+                this.showHarmonicDetails(harmonic);
+            }
+        });
+    }
+    
+    /**
+     * v3: Highlight harmonic across all tables
+     */
+    highlightHarmonicAcrossTables(harmonic) {
+        // Remove previous highlights
+        document.querySelectorAll('.harmonic-highlighted').forEach(el => {
+            el.classList.remove('harmonic-highlighted');
+        });
+        
+        // Add highlights to matching harmonics
+        document.querySelectorAll(`[data-harmonic="${harmonic}"]`).forEach(el => {
+            el.classList.add('harmonic-highlighted');
+        });
+        
+        this.log(`Highlighted harmonic ${harmonic} across all tables`);
+    }
+    
+    /**
+     * v3: Show harmonic details modal
+     */
+    showHarmonicDetails(harmonic) {
+        const details = this.getHarmonicDetails(harmonic);
+        
+        // Create modal or alert with harmonic information
+        const message = `
+            Harmonic ${harmonic} Details:
+            - Type: ${harmonic % 2 === 0 ? 'Even' : 'Odd'}
+            - Frequency: ${harmonic * 50}Hz (50Hz system)
+            - Tables present: ${details.tables.join(', ')}
+            - Violations: ${details.violations}
+        `;
+        
+        alert(message);
+        this.log(`Showing details for harmonic ${harmonic}:`, details);
+    }
+    
+    /**
+     * v3: Get comprehensive harmonic details
+     */
+    getHarmonicDetails(harmonic) {
+        const details = {
+            harmonic: parseInt(harmonic),
+            type: harmonic % 2 === 0 ? 'Even' : 'Odd',
+            frequency: harmonic * 50,
+            tables: [],
+            violations: 0,
+            pages: []
+        };
+        
+        // Search through processed data
+        Object.keys(this.processedData).forEach(tableKey => {
+            const data = this.processedData[tableKey];
+            const type = harmonic % 2 === 0 ? 'even' : 'odd';
+            
+            if (data[type] && data[type][harmonic]) {
+                details.tables.push(tableKey);
+                
+                const harmonicData = data[type][harmonic];
+                if (harmonicData.pageNumber && harmonicData.pageNumber !== 'Unknown') {
+                    details.pages.push(harmonicData.pageNumber);
+                }
+                
+                // Check for violations
+                if (harmonicData.limit && harmonicData.values) {
+                    harmonicData.values.forEach(value => {
+                        if (value > harmonicData.limit) {
+                            details.violations++;
+                        }
+                    });
+                }
+            }
+        });
+        
+        details.pages = [...new Set(details.pages)]; // Remove duplicates
+        return details;
+    }
+    
+    /**
+     * Setup event listeners with enhanced features
+     */
+    setupEventListeners() {
+        // Enhanced hover effects for violation statistics
+        document.querySelectorAll('.violation-stat').forEach(stat => {
+            stat.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px) scale(1.02)';
+                this.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.15)';
+                this.style.transition = 'all 0.3s ease';
+            });
+            
+            stat.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+                this.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.08)';
+            });
+        });
+        
+        // v3: Add keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'h') {
+                e.preventDefault();
+                this.showKeyboardShortcuts();
+            }
+        });
+    }
+    
+    /**
+     * v3: Show keyboard shortcuts
+     */
+    showKeyboardShortcuts() {
+        const shortcuts = `
+            Keyboard Shortcuts:
+            - Ctrl+H: Show this help
+            - Click harmonic: Highlight across tables
+            - Double-click harmonic: Show details
+            - Hover violation cell: Enhanced view
+        `;
+        alert(shortcuts);
+    }
+    
+    /**
+     * Enhanced Word document generation with v3 features
      */
     downloadFormattedWordDocument() {
         const filename = document.querySelector('h2').textContent;
         const currentDate = new Date().toLocaleDateString();
         
+        this.log('Generating enhanced Word document v3...');
+        
         let htmlContent = this.generateWordDocumentHTML(filename, currentDate);
         
         // Create and download blob
         const blob = new Blob([htmlContent], { type: 'application/msword' });
-        const downloadFilename = `Harmonic_Analysis_Report_${filename.replace('.pdf', '')}_${new Date().toISOString().slice(0, 10)}.doc`;
+        const downloadFilename = `Harmonic_Analysis_Report_v3_${filename.replace('.pdf', '')}_${new Date().toISOString().slice(0, 10)}.doc`;
         
         this.downloadBlob(blob, downloadFilename);
+        this.log('Word document download initiated');
     }
     
     /**
-     * Enhanced Word document generation with THD/TDD summary tables
+     * Generate enhanced HTML content for Word document
      */
     generateWordDocumentHTML(filename, currentDate) {
         let htmlContent = `
@@ -728,162 +1119,61 @@ class HarmonicAnalysis {
             htmlContent += '<div class="table-container">';
             const clonedTable = this.processTableForExport(table);
             htmlContent += clonedTable.outerHTML;
-            htmlContent += '</div></div>';
+            htmlContent += '</div>';
+            htmlContent += '</div>';
         });
         
         htmlContent += '</body></html>';
         return htmlContent;
     }
-    /**
-     * Process table for export (preserve styling classes)
-     */
-    processTableForExport(table) {
-        const clonedTable = table.cloneNode(true);
-        
-        // Add current-table class for current tables
-        if (table.id.includes('current')) {
-            clonedTable.classList.add('current-table');
-        }
-        
-        // Preserve violation cells
-        clonedTable.querySelectorAll('.violation-cell').forEach(cell => {
-            cell.className = 'violation';
-        });
-        
-        return clonedTable;
-    }
     
     /**
-     * Download blob (cross-browser compatible)
-     */
-    downloadBlob(blob, filename) {
-        if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-            // IE/Edge
-            window.navigator.msSaveOrOpenBlob(blob, filename);
-        } else {
-            // Modern browsers
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(link.href);
-        }
-    }
-    
-    /**
-     * Create THD summary tables in Word document
-     */
-    createThdSummaryTables(doc, voltageDf, currentDf) {
-        doc.add_heading('THD Summary Tables', level=2);
-
-        // Voltage THD Table
-        doc.add_paragraph('Voltage Circuit THD (99th percentile)', style='Heading 3');
-        if (!voltageDf.empty) {
-            const table = doc.add_table({ rows: 1, cols: 6, style: 'Table Grid' });
-            table.alignment = WD_TABLE_ALIGNMENT.CENTER;
-
-            const headers = ['Day', 'Recommended limit as per Standard IEEE 519-2022 (%)', 'R Phase (%)', 'Y Phase (%)', 'B Phase (%)', 'Remarks'];
-            const headerCells = table.rows[0].cells;
-            for (let i = 0; i < headers.length; i++) {
-                headerCells[i].text = headers[i];
-                headerCells[i].paragraphs[0].runs[0].font.bold = true;
-                headerCells[i].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER;
-            }
-
-            voltageDf.forEach(row => {
-                const rowCells = table.add_row().cells;
-                rowCells[0].text = row['Day'].toString();
-                rowCells[1].text = row['Recommended limit (%)'].toString();
-                rowCells[2].text = row['R Phase (%)'] !== null ? row['R Phase (%)'].toFixed(3) : '';
-                rowCells[3].text = row['Y Phase (%)'] !== null ? row['Y Phase (%)'].toFixed(3) : '';
-                rowCells[4].text = row['B Phase (%)'] !== null ? row['B Phase (%)'].toFixed(3) : '';
-                rowCells[5].text = row['Remarks'].toString();
-                
-                rowCells.forEach(cell => {
-                    cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER;
-                });
-            });
-        }
-        doc.add_paragraph();
-
-        // Current TDD Table
-        doc.add_paragraph('Current Circuit TDD (99th percentile)', style='Heading 3');
-        if (!currentDf.empty) {
-            const table = doc.add_table({ rows: 1, cols: 6, style: 'Table Grid' });
-            table.alignment = WD_TABLE_ALIGNMENT.CENTER;
-
-            const headers = ['Day', 'Recommended limit as per Standard IEEE 519-2022 (%)', 'R Phase (%)', 'Y Phase (%)', 'B Phase (%)', 'Remarks'];
-            const headerCells = table.rows[0].cells;
-            for (let i = 0; i < headers.length; i++) {
-                headerCells[i].text = headers[i];
-                headerCells[i].paragraphs[0].runs[0].font.bold = true;
-                headerCells[i].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER;
-            }
-
-            currentDf.forEach(row => {
-                const rowCells = table.add_row().cells;
-                rowCells[0].text = row['Day'].toString();
-                rowCells[1].text = row['Recommended limit (%)'].toString();
-                rowCells[2].text = row['R Phase (%)'] !== null ? row['R Phase (%)'].toFixed(3) : '';
-                rowCells[3].text = row['Y Phase (%)'] !== null ? row['Y Phase (%)'].toFixed(3) : '';
-                rowCells[4].text = row['B Phase (%)'] !== null ? row['B Phase (%)'].toFixed(3) : '';
-                rowCells[5].text = row['Remarks'].toString();
-                
-                rowCells.forEach(cell => {
-                    cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER;
-                });
-            });
-        }
-        doc.add_paragraph();
-    }
-
-    /**
-     * Generate HTML for THD/TDD Summary Tables
+     * Generate HTML for THD/TDD Summary Tables in Word export
      */
     generateThdTddSummaryTablesHTML() {
         let htmlContent = '';
         
-        // Define THD/TDD table configurations
         const thdTddTables = [
             {
                 id: 'voltage-thd-full-95-table',
-                title: '1. Total Harmonic Distortion in Voltage circuit (THD) for short time (10 minute) values 95th percentile'
+                title: '1. Total Harmonic Distortion in Voltage circuit (THD) for short time (10 minute) values 95th percentile',
+                class: 'voltage-thd-table'
             },
             {
                 id: 'voltage-thd-daily-99-table', 
-                title: '2. Total Harmonic Distortion in Voltage circuit (THD) for Very short time (3 second) values 99th percentile'
+                title: '2. Total Harmonic Distortion in Voltage circuit (THD) for Very short time (3 second) values 99th percentile',
+                class: 'voltage-thd-table'
             },
             {
                 id: 'current-tdd-full-99-table',
-                title: '3. Total Harmonic Distortion in Current circuit (THD)/ Total Demand Distortion in Current circuit (TDD) for short time (10Minute) values 99th percentile'
+                title: '3. THD/TDD in Current circuit for short time (10Minute) values 99th percentile',
+                class: 'current-tdd-table'
             },
             {
                 id: 'current-tdd-full-95-table',
-                title: '4. Total Harmonic Distortion in Current circuit (THD)/ Total Demand Distortion in Current circuit (TDD) for short time (10Minute) values 95th percentile'
+                title: '4. THD/TDD in Current circuit for short time (10Minute) values 95th percentile',
+                class: 'current-tdd-table'
             },
             {
                 id: 'current-tdd-daily-99-table',
-                title: '5. Total Harmonic Distortion in Current circuit (THD)/ Total Demand Distortion in Current circuit (TDD) for Very short time (3 second) values 99th percentile'
+                title: '5. THD/TDD in Current circuit for Very short time (3 second) values 99th percentile',
+                class: 'current-tdd-table'
             }
         ];
         
         thdTddTables.forEach(tableConfig => {
             const table = document.getElementById(tableConfig.id);
             if (table && table.querySelector('tbody').children.length > 0) {
-                // Check if table has actual data (not just "No data available")
                 const hasData = !table.querySelector('tbody').textContent.includes('No data available');
                 
                 if (hasData) {
                     htmlContent += '<div class="page-container table-page">';
                     htmlContent += `<div class="title">${tableConfig.title}</div>`;
                     
-                    // Clone and process the table
                     const clonedTable = table.cloneNode(true);
-                    clonedTable.className = 'thd-summary-table';
+                    clonedTable.className = `thd-summary-table ${tableConfig.class}`;
                     
-                    // Process violation cells
+                    // Process styling classes
                     clonedTable.querySelectorAll('.remarks-violation').forEach(cell => {
                         cell.className = 'remarks-violation';
                     });
@@ -893,11 +1183,60 @@ class HarmonicAnalysis {
                     
                     htmlContent += '<div class="table-container">';
                     htmlContent += clonedTable.outerHTML;
-                    htmlContent += '</div></div>';
+                    htmlContent += '</div>';
+                    htmlContent += '</div>';
                 }
             }
         });
         
         return htmlContent;
     }
+    
+    /**
+     * Process table for export with enhanced styling preservation
+     */
+    processTableForExport(table) {
+        const clonedTable = table.cloneNode(true);
+        
+        // Add table type classes
+        if (table.id.includes('current')) {
+            clonedTable.classList.add('current-table');
+        } else if (table.id.includes('voltage')) {
+            clonedTable.classList.add('voltage-table');
+        }
+        
+        // Preserve violation cells with enhanced styling
+        clonedTable.querySelectorAll('.violation-cell').forEach(cell => {
+            cell.className = 'violation';
+        });
+        
+        return clonedTable;
+    }
+    
+    /**
+     * Download blob with enhanced error handling
+     */
+    downloadBlob(blob, filename) {
+        try {
+            if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                // IE/Edge
+                window.navigator.msSaveOrOpenBlob(blob, filename);
+            } else {
+                // Modern browsers
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            }
+            this.log(`Download completed: ${filename}`);
+        } catch (error) {
+            this.log('Download error:', error);
+            alert('Download failed. Please try again.');
+        }
+    }
+
 }

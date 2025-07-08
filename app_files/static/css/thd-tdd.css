@@ -1,0 +1,388 @@
+/* THD/TDD Summary Tables Base Styling */
+.thd-summary-section {
+    margin-bottom: 2.5rem;
+    page-break-inside: avoid;
+}
+
+.thd-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 2px solid #000;
+    font-size: 0.9rem;
+    margin: 0 auto;
+    background-color: #a0cad0;
+}
+
+.thd-summary-table th,
+.thd-summary-table td {
+    border: 1px solid #000;
+    padding: 8px 10px;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 1.3;
+}
+
+.thd-summary-table th {
+    font-weight: bold;
+    color: #333;
+    position: relative;
+}
+
+/* Header Color Coding by Table Type */
+/* Voltage THD Tables - Blue Theme */
+#voltage-thd-full-95-table th,
+#voltage-thd-daily-99-table th {
+    background-color: #a5f494 !important; /* Light Blue */
+    color: #1976D2;
+    border-bottom: 2px solid #1976D2;
+}
+
+#voltage-thd-full-95-table tbody td,
+#voltage-thd-daily-99-table tbody td {
+    background-color: #a5f494 !important; /* Very Light Blue */
+}
+
+/* Current TDD Tables - Green Theme */
+#current-tdd-full-99-table th,
+#current-tdd-full-95-table th,
+#current-tdd-daily-99-table th {
+    background-color: #81bcea !important; /* Light Green */
+    color: #2E7D32;
+    border-bottom: 2px solid #2E7D32;
+}
+
+#current-tdd-full-99-table tbody td,
+#current-tdd-full-95-table tbody td,
+#current-tdd-daily-99-table tbody td {
+    background-color: #81bcea !important; /* Very Light Green */
+}
+
+/* Column-Specific Styling */
+.thd-summary-table th:nth-child(1),
+.thd-summary-table td:nth-child(1) {
+    /* Day column */
+    width: 15%;
+    font-weight: bold;
+    background-color: #adacac !important;
+}
+
+.thd-summary-table th:nth-child(2),
+.thd-summary-table td:nth-child(2) {
+    /* Recommended limit column */
+    width: 25%;
+    font-weight: bold;
+}
+
+.thd-summary-table td:nth-child(2) {
+    background-color: #FFFEF7 !important; /* Cream background for limits */
+    color: #E65100;
+    font-weight: bold;
+}
+
+.thd-summary-table th:nth-child(3),
+.thd-summary-table th:nth-child(4),
+.thd-summary-table th:nth-child(5),
+.thd-summary-table td:nth-child(3),
+.thd-summary-table td:nth-child(4),
+.thd-summary-table td:nth-child(5) {
+    /* R, Y, B Phase columns */
+    width: 12%;
+}
+
+.thd-summary-table th:nth-child(6),
+.thd-summary-table td:nth-child(6) {
+    /* Remarks column */
+    width: 24%;
+    text-align: left;
+    padding-left: 12px;
+}
+
+/* Phase Column Headers with Phase Colors */
+.thd-summary-table th:nth-child(3) {
+    /* R Phase */
+    background-color: #fbd979 !important;
+    color: #C62828;
+    font-weight: bold;
+}
+
+.thd-summary-table th:nth-child(4) {
+    /* Y Phase */
+    background-color: #fbd979 !important;
+    color: #F57F17;
+    font-weight: bold;
+}
+
+.thd-summary-table th:nth-child(5) {
+    /* B Phase */
+    background-color: #fbd979 !important;
+    color: #2E7D32;
+    font-weight: bold;
+}
+
+/* Phase Data Cells with Subtle Coloring */
+.thd-summary-table td:nth-child(3) {
+    /* R Phase data */
+    background-color: #fbd979 !important;
+    border-left: 3px solid #FFCDD2;
+}
+
+.thd-summary-table td:nth-child(4) {
+    /* Y Phase data */
+    background-color: #fbd979  !important;
+    border-left: 3px solid #FFF9C4;
+}
+
+.thd-summary-table td:nth-child(5) {
+    /* B Phase data */
+    background-color: #fbd979 !important;
+    border-left: 3px solid #C8E6C8;
+}
+
+/* Remarks Column Styling */
+.thd-summary-table .remarks-pass {
+    color: #2E7D32;
+    font-weight: 500;
+    font-size: 0.85rem;
+    background-color: #fbd979 !important;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.thd-summary-table .remarks-violation {
+    color: #D32F2F;
+    font-weight: bold;
+    font-size: 0.85rem;
+    background-color: #FFEBEE !important;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/* Violation Row Highlighting */
+.thd-summary-table tr:has(.remarks-violation) {
+    background-color: rgba(255, 235, 238, 0.3) !important;
+}
+
+.thd-summary-table tr:has(.remarks-violation) td {
+    border-color: #FFCDD2 !important;
+    font-weight: 500;
+}
+
+/* Hover Effects */
+.thd-summary-table tbody tr:hover {
+    background-color: rgba(33, 150, 243, 0.04) !important;
+    transition: background-color 0.2s ease;
+}
+
+.thd-summary-table tbody tr:hover td {
+    transform: scale(1.002);
+    transition: transform 0.1s ease;
+}
+
+/* No Data Available Styling */
+.thd-summary-table .text-center.text-muted {
+    font-style: italic;
+    background-color: #F8F9FA !important;
+    color: #6C757D !important;
+    padding: 20px;
+}
+
+/* Table Title Enhancements for THD/TDD */
+#thd-tdd-summary-container h3 {
+    color: #1976D2;
+    border-bottom: 3px solid #E3F2FD;
+    padding-bottom: 10px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+#thd-tdd-summary-container .table-title {
+    font-size: 1.05rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 0.5rem;
+    text-decoration: underline;
+    text-decoration-color: #1976D2;
+    text-underline-offset: 3px;
+}
+
+#thd-tdd-summary-container .table-subtitle {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+/* Responsive Design for THD/TDD Tables */
+@media (max-width: 768px) {
+    .thd-summary-table {
+        font-size: 0.8rem;
+    }
+    
+    .thd-summary-table th,
+    .thd-summary-table td {
+        padding: 6px 8px;
+    }
+    
+    .thd-summary-table th:nth-child(2) {
+        /* Recommended limit column on mobile */
+        font-size: 0.75rem;
+        line-height: 1.2;
+    }
+    
+    .thd-summary-table .remarks-pass,
+    .thd-summary-table .remarks-violation {
+        font-size: 0.75rem;
+        padding: 2px 4px;
+    }
+    
+    #thd-tdd-summary-container h3 {
+        font-size: 1.3rem;
+    }
+    
+    #thd-tdd-summary-container .table-title {
+        font-size: 0.95rem;
+        line-height: 1.3;
+    }
+}
+
+/* Print-Specific Styles for THD/TDD Tables */
+@media print {
+    .thd-summary-section {
+        page-break-inside: avoid;
+        margin-bottom: 1.5rem;
+    }
+    
+    .thd-summary-table {
+        font-size: 0.8rem;
+    }
+    
+    /* Print color preservation for voltage THD tables */
+    #voltage-thd-full-95-table th,
+    #voltage-thd-daily-99-table th {
+        background-color: #5effd9 !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    #voltage-thd-full-95-table tbody td,
+    #voltage-thd-daily-99-table tbody td {
+        background-color: #9ed8ef !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    /* Print color preservation for current TDD tables */
+    #current-tdd-full-99-table th,
+    #current-tdd-full-95-table th,
+    #current-tdd-daily-99-table th {
+        background-color: #a0eaa0 !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    #current-tdd-full-99-table tbody td,
+    #current-tdd-full-95-table tbody td,
+    #current-tdd-daily-99-table tbody td {
+        background-color: #b3e725 !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    .thd-summary-table .remarks-pass {
+        background-color: #E8F5E8 !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    .thd-summary-table .remarks-violation {
+        background-color: #FFEBEE !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    .thd-summary-table td:nth-child(2) {
+        background-color: #FFFEF7 !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    .thd-summary-table th:nth-child(3) {
+        background-color: #FFEBEE !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    .thd-summary-table th:nth-child(4) {
+        background-color: #FFF8E1 !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    .thd-summary-table th:nth-child(5) {
+        background-color: #E8F5E8 !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    .thd-summary-table td:nth-child(3) {
+        border-left: 3px solid #FFCDD2 !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    .thd-summary-table td:nth-child(4) {
+        border-left: 3px solid #FFF9C4 !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    .thd-summary-table td:nth-child(5) {
+        border-left: 3px solid #C8E6C8 !important;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+}
+
+/* Animation for THD/TDD Tables */
+.thd-summary-table {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Accessibility Enhancements */
+.thd-summary-table th {
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.thd-summary-table:focus-within {
+    outline: 2px solid #1976D2;
+    outline-offset: 2px;
+}
+
+/* Enhanced Border Styling */
+.thd-summary-table {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.thd-summary-table th:first-child {
+    border-top-left-radius: 4px;
+}
+
+.thd-summary-table th:last-child {
+    border-top-right-radius: 4px;
+}
