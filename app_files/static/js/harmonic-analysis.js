@@ -1,5 +1,5 @@
 /**
- * Harmonic Analysis JavaScript Module v3
+ * Harmonic Analysis JavaScript Module v2
  * Enhanced version with improved page tracking and professional styling support
  */
 
@@ -14,15 +14,15 @@ class HarmonicAnalysis {
             'current-full-99': ['Harmonic Current Full Time Range', '99'],
             'current-full-95': ['Harmonic Current Full Time Range', '95']
         };
-        this.version = 'v3';
-        this.debug = true;
+        this.version = 'v2';
+        this.debug = false;
     }
     
     /**
      * Initialize the harmonic analysis system
      */
     init() {
-        this.log('Initializing Harmonic Analysis v3...');
+        this.log('Initializing Harmonic Analysis v2...');
         this.log('Backend data keys:', Object.keys(this.backendData));
         
         this.processBackendData();
@@ -30,15 +30,15 @@ class HarmonicAnalysis {
         this.setupEventListeners();
         this.enhanceTableStyling();
         
-        this.log('Harmonic Analysis v3 initialized successfully');
+        this.log('Harmonic Analysis v2 initialized successfully');
     }
     
     /**
-     * Enhanced logging for v3
+     * Enhanced logging for v2
      */
     log(message, ...args) {
         if (this.debug) {
-            console.log(`[HarmonicAnalysis-v3] ${message}`, ...args);
+            console.log(`[HarmonicAnalysis-v2] ${message}`, ...args);
         }
     }
     
@@ -71,7 +71,7 @@ class HarmonicAnalysis {
             const harmonic = parseInt(row.Harmonic);
             const isVoltage = tableKey.includes('Voltage');
             
-            // Enhanced validation for v3
+            // Enhanced validation for v2
             if (type === 'even' && (harmonic < 2 || harmonic > 50 || harmonic % 2 !== 0)) {
                 this.log(`Skipping invalid even harmonic ${harmonic} in ${tableKey}`);
                 return;
@@ -87,7 +87,7 @@ class HarmonicAnalysis {
             const b_val = parseFloat(row[isVoltage ? 'Measured_V3N' : 'Measured_I3']) || 0;
             const limit = parseFloat(row['Reg Max[%]']) || 0;
             
-            // v3: Enhanced page number extraction with fallback
+            // v2: Enhanced page number extraction with fallback
             let pageNumber = 'Unknown';
             if (row['Page_Number'] !== undefined && row['Page_Number'] !== null && row['Page_Number'] !== '') {
                 pageNumber = parseInt(row['Page_Number']) || 'Unknown';
@@ -96,9 +96,9 @@ class HarmonicAnalysis {
             processed[harmonic] = {
                 values: [r_val, y_val, b_val],
                 limit: limit,
-                pageNumber: pageNumber,  // v3: Store page number
-                tableKey: tableKey,      // v3: Store table key for debugging
-                rowIndex: index         // v3: Store row index for debugging
+                pageNumber: pageNumber,  // v2: Store page number
+                tableKey: tableKey,      // v2: Store table key for debugging
+                rowIndex: index         // v2: Store row index for debugging
             };
         });
         
@@ -173,7 +173,7 @@ class HarmonicAnalysis {
         if (!tbody) {
             this.log(`Warning: Table body not found for: ${tableId}`);
             
-            // v3: Create table structure if it doesn't exist
+            // v2: Create table structure if it doesn't exist
             this.createTableStructure(tableId);
             return { hasViolations: false, violationDetails: [], missingHarmonics: { even: [], odd: [] } };
         }
@@ -276,7 +276,7 @@ class HarmonicAnalysis {
     }
     
     /**
-     * v3: Create table structure if it doesn't exist
+     * v2: Create table structure if it doesn't exist
      */
     createTableStructure(tableId) {
         const container = document.getElementById('harmonic-tables-container');
@@ -327,7 +327,7 @@ class HarmonicAnalysis {
     }
     
     /**
-     * v3: Get table configuration
+     * v2: Get table configuration
      */
     getTableConfiguration(tableId) {
         const configs = {
@@ -373,13 +373,12 @@ class HarmonicAnalysis {
             const value = values[j];
             
             if (value !== null && value !== undefined) {
-                // v3: Display exact value with enhanced formatting
                 cell.textContent = value.toString();
-                cell.title = `Page: ${pageNumber}, Value: ${value}`; // v3: Enhanced tooltip
+                cell.title = `Page: ${pageNumber}, Value: ${value}`; 
                 
                 if (limit && value > limit) {
                     cell.classList.add('violation-cell');
-                    cell.setAttribute('data-page', pageNumber); // v3: Store page number
+                    cell.setAttribute('data-page', pageNumber); 
                     violations.push(['R', 'Y', 'B'][j]);
                 }
             } else {
@@ -721,9 +720,7 @@ class HarmonicAnalysis {
         this.log(`Total violations found: ${totalViolations}`);
     }
     
-    /**
-     * v3: Enhanced table styling
-     */
+
     enhanceTableStyling() {
         // Add smooth animations to all tables
         const tables = document.querySelectorAll('.harmonic-data-table, .thd-summary-table');
@@ -747,9 +744,7 @@ class HarmonicAnalysis {
         });
     }
     
-    /**
-     * v3: Enhance generated tables with additional features
-     */
+
     enhanceGeneratedTables() {
         // Add table-specific classes for styling
         const tables = document.querySelectorAll('.harmonic-data-table');
@@ -766,9 +761,7 @@ class HarmonicAnalysis {
         this.addTableInteractivity();
     }
     
-    /**
-     * v3: Add interactive features to tables
-     */
+
     addTableInteractivity() {
         // Add click handlers for harmonic cells
         document.addEventListener('click', (e) => {
@@ -787,9 +780,7 @@ class HarmonicAnalysis {
         });
     }
     
-    /**
-     * v3: Highlight harmonic across all tables
-     */
+
     highlightHarmonicAcrossTables(harmonic) {
         // Remove previous highlights
         document.querySelectorAll('.harmonic-highlighted').forEach(el => {
@@ -804,9 +795,7 @@ class HarmonicAnalysis {
         this.log(`Highlighted harmonic ${harmonic} across all tables`);
     }
     
-    /**
-     * v3: Show harmonic details modal
-     */
+
     showHarmonicDetails(harmonic) {
         const details = this.getHarmonicDetails(harmonic);
         
@@ -823,9 +812,7 @@ class HarmonicAnalysis {
         this.log(`Showing details for harmonic ${harmonic}:`, details);
     }
     
-    /**
-     * v3: Get comprehensive harmonic details
-     */
+
     getHarmonicDetails(harmonic) {
         const details = {
             harmonic: parseInt(harmonic),
@@ -882,7 +869,6 @@ class HarmonicAnalysis {
             });
         });
         
-        // v3: Add keyboard navigation
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'h') {
                 e.preventDefault();
@@ -891,9 +877,7 @@ class HarmonicAnalysis {
         });
     }
     
-    /**
-     * v3: Show keyboard shortcuts
-     */
+
     showKeyboardShortcuts() {
         const shortcuts = `
             Keyboard Shortcuts:
@@ -905,20 +889,18 @@ class HarmonicAnalysis {
         alert(shortcuts);
     }
     
-    /**
-     * Enhanced Word document generation with v3 features
-     */
+
     downloadFormattedWordDocument() {
         const filename = document.querySelector('h2').textContent;
         const currentDate = new Date().toLocaleDateString();
         
-        this.log('Generating enhanced Word document v3...');
+        this.log('Generating enhanced Word document v2...');
         
         let htmlContent = this.generateWordDocumentHTML(filename, currentDate);
         
         // Create and download blob
         const blob = new Blob([htmlContent], { type: 'application/msword' });
-        const downloadFilename = `Harmonic_Analysis_Report_v3_${filename.replace('.pdf', '')}_${new Date().toISOString().slice(0, 10)}.doc`;
+        const downloadFilename = `Harmonic_Analysis_Report_v2_${filename.replace('.pdf', '')}_${new Date().toISOString().slice(0, 10)}.doc`;
         
         this.downloadBlob(blob, downloadFilename);
         this.log('Word document download initiated');

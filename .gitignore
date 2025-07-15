@@ -1,23 +1,47 @@
-# Logs
+# ─── Logs ─────────────────────────────────────
 app_files/app.log
 
-# Uploaded files
+# ─── Uploaded/Generated Files ────────────────
 app_files/uploads/
 
-# Build artifacts
+# ─── Build Artifacts ─────────────────────────
+build/
+dist/
+*.spec
+*.exe
+app_files/build/
+app_files/dist/
+app_files/*.spec
+app_files/*.exe
 app_files.zip
 
-# Byte-compiled files
+# ─── Python Bytecode ─────────────────────────
 __pycache__/
 *.py[cod]
+*.pyo
 *.pyd
 
-# Environment
+# ─── Virtual Environments ────────────────────
 env/
 venv/
 
-# IDEs and OS
+# ─── IDE and OS Metadata ─────────────────────
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+
+# ─── Non-source Documentation / Artifacts ────
+# Comment out if you need to track them later
+*.pdf
+*.png
+*.txt
+
+# ─── Specifically Unnecessary Files ──────────
+directory_tree.txt
+og-thd-tdd-code-backup.txt
+7 DAYS report_merged.pdf
+
+# ─── Exceptions (if needed, uncomment to keep) ─
+# !app_files/requirements.txt
+# !app_files/version_info.txt

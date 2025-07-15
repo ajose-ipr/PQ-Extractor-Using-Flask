@@ -1,41 +1,47 @@
-Directory tree for: D:\Work Files\Workspace\Project 1\Flask-PQ-Extractor\Flask_V1\pq_report_app_V2\app_files
-
+pq_report_app_V2(till additional tables)/
 ├── .gitignore
-├── app.log
-├── app.py
-├── config.py
+├── 7 DAYS report_merged.pdf
+├── README.md
+├── Run App.bat
+├── app_files
+│   ├── app.py
+│   ├── app_icon.ico
+│   ├── command-for-exe-build.txt
+│   ├── config.py
+│   ├── directory_tree.txt
+│   ├── favicon.ico
+│   ├── favicon.png
+│   ├── favicon16.png
+│   ├── favicon32.png
+│   ├── pq_report_app.spec
+│   ├── pq_report_app_test.spec
+│   ├── requirements.txt
+│   ├── static
+│   │   ├── css
+│   │   │   ├── base.css
+│   │   │   ├── index.css
+│   │   │   ├── results.css
+│   │   │   ├── style.css
+│   │   │   └── thd-tdd.css
+│   │   ├── favicon.ico
+│   │   ├── favicon.png
+│   │   ├── favicon16.png
+│   │   ├── favicon32.png
+│   │   └── js
+│   │       ├── harmonic-analysis.js
+│   │       └── main.js
+│   ├── templates
+│   │   ├── 404.html
+│   │   ├── base.html
+│   │   ├── index.html
+│   │   ├── logo_converter.py
+│   │   ├── results.html
+│   │   └── select.html
+│   ├── utils
+│   │   ├── __init__.py
+│   │   └── processing.py
+│   └── version_info.txt
+├── directory_tree.txt
 ├── folder_heirarchy.py
-├── requirements.txt
-├── static
-│   ├── css
-│   │   └── style.css
-│   └── js
-│       ├── harmonic-analysis.js
-│       └── main.js
-├── templates
-│   ├── 404.html
-│   ├── backup_results.html
-│   ├── base.html
-│   ├── index.html
-│   ├── results.html
-│   └── select.html
-├── uploads
-│   ├── 7_DAYS_report.pdf
-│   ├── Day_1_Night.pdf
-│   ├── Day_2_day.pdf
-│   ├── Day_2_night.pdf
-│   ├── Day_3_Night.pdf
-│   ├── Day_3_day.pdf
-│   ├── Day_4_Night.pdf
-│   ├── Day_4_day.pdf
-│   ├── Day_5_day.pdf
-│   ├── Day_5_night.pdf
-│   ├── Day_6_Night.pdf
-│   ├── Day_6_day.pdf
-│   ├── Day_7_Night.pdf
-│   ├── Day_7_day.pdf
-│   ├── Day_8_day.pdf
-│   └── Failed_Case_File.pdf
-└── utils
-    ├── __init__.py
-    └── processing.py
+├── og-thd-tdd-code-backup.txt
+└── thd-tdd-all-tables.png

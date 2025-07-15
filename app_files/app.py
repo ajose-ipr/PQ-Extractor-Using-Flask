@@ -5,18 +5,44 @@ import logging
 from io import BytesIO
 import pandas as pd
 from config import Config
+import sys
+import webbrowser
+import threading
+import time
 from utils.processing import (
     extract_metadata, extract_tables_from_pdf, 
     process_table_data, split_table, analyze_failures,
-    create_excel_download, create_bulk_excel_download,
+    create_bulk_excel_download,
     extract_thd_tdd_summary_tables_from_pdf,
-    process_thd_tdd_summary_data,
+    process_thd_tdd_summary_data, create_bulk_word_download,
     create_enhanced_excel_download
 )
 
-# Initialize Flask app
-app = Flask(__name__)
+# PyInstaller path handling
+def get_resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# Create Flask app with correct paths FIRST
+template_dir = get_resource_path('templates')
+static_dir = get_resource_path('static')
+
+# Initialize Flask app with PyInstaller paths
+app = Flask(__name__, 
+           template_folder=template_dir,
+           static_folder=static_dir)
 app.config.from_object(Config)
+
+# Set upload folder path with PyInstaller support
+UPLOAD_FOLDER = get_resource_path('uploads')
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -265,7 +291,7 @@ def download_file(filename):
             BytesIO(excel_data),
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             as_attachment=True,
-            download_name=f"{filename.replace('.pdf', '')}_complete_analysis_v3.xlsx"
+            download_name=f"{filename.replace('.pdf', '')}_complete_analysis.xlsx"
         )
     
     except Exception as e:
@@ -328,7 +354,7 @@ def download_violations(filename):
             BytesIO(csv_data.encode('utf-8')),
             mimetype='text/csv',
             as_attachment=True,
-            download_name=f"{filename.replace('.pdf', '')}_violations_with_pages_v3.csv"
+            download_name=f"{filename.replace('.pdf', '')}_violations_with_pages.csv"
         )
     
     except Exception as e:
@@ -376,12 +402,60 @@ def bulk_download():
             BytesIO(excel_data),
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             as_attachment=True,
-            download_name="bulk_harmonic_reports_v3.xlsx"
+            download_name="bulk_harmonic_reports.xlsx"
         )
     
     except Exception as e:
         logger.error(f"Error generating bulk download: {str(e)}", exc_info=True)
         flash(f'Error generating bulk download: {str(e)}', 'danger')
+        return redirect(url_for('index'))
+
+@app.route('/bulk_download_word')
+def bulk_download_word():
+    logger.info("Bulk Word download requested")
+    if 'uploaded_files' not in session or not session['uploaded_files']:
+        logger.warning("No files available for bulk Word download")
+        flash('No files available for bulk Word download', 'warning')
+        return redirect(url_for('index'))
+    
+    all_files_data = {}
+    for filename in session['uploaded_files']:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        try:
+            tables = extract_tables_from_pdf(filepath)
+            if any(tables.values()):
+                all_files_data[filename] = tables
+                logger.debug(f"Processed {filename} for bulk Word download")
+                
+                # Log page information for bulk Word download
+                for table_name, table_data in tables.items():
+                    if table_data:
+                        page_numbers = [row[-1] for row in table_data if len(row) >= 10]
+                        unique_pages = set(page_numbers) if page_numbers else set()
+                        logger.debug(f"Bulk Word: {filename} - {table_name}: {len(table_data)} rows from pages {sorted(unique_pages)}")
+        except Exception as e:
+            logger.error(f"Error processing {filename} for bulk Word download: {str(e)}")
+            continue
+    
+    if not all_files_data:
+        logger.error("No valid data found for bulk Word download")
+        flash('No valid data available for bulk Word download', 'warning')
+        return redirect(url_for('index'))
+    
+    try:
+        word_data = create_bulk_word_download(all_files_data)
+        logger.info(f"Created bulk Word download with {len(all_files_data)} files")
+        
+        return send_file(
+            BytesIO(word_data),
+            mimetype='application/msword',
+            as_attachment=True,
+            download_name="bulk_harmonic_reports.doc"
+        )
+    
+    except Exception as e:
+        logger.error(f"Error generating bulk Word download: {str(e)}", exc_info=True)
+        flash(f'Error generating bulk Word download: {str(e)}', 'danger')
         return redirect(url_for('index'))
 
 @app.errorhandler(413)
@@ -399,6 +473,18 @@ def server_error(e):
     flash('An internal server error occurred', 'danger')
     return redirect(url_for('index'))
 
+# Auto-open browser function (MOVED TO CORRECT POSITION)
+def open_browser():
+    """Open web browser after a short delay"""
+    time.sleep(1.5)  # Wait for Flask to start
+    webbrowser.open('http://127.0.0.1:5000')
+
 if __name__ == '__main__':
-    logger.info("Starting Flask application v3 with enhanced page tracking")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    logger.info("Starting Flask application v2")
+    
+    # Start browser in a separate thread (ONLY for exe, not debug)
+    if not os.environ.get("WERKZEUG_RUN_MAIN"):
+        threading.Timer(1.5, open_browser).start()
+    
+    # Run Flask app
+    app.run(host='127.0.0.1', port=5000, debug=False)

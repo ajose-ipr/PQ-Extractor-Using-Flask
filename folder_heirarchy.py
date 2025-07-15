@@ -2,7 +2,7 @@ import os
 
 # Folders to skip entirely
 IGNORED_DIRS = {'.git', '__pycache__', 'env', 'venv', '.idea', '.vscode', 
-               'node_modules', '.next', 'dist', 'build'}
+               'node_modules', '.next', 'dist', 'build', 'dist', '.venv', '_pycache__'}
 
 def load_gitignore(root_path):
     """Load .gitignore entries if file exists"""
@@ -56,7 +56,7 @@ def generate_directory_tree(start_path='.', indent='', ignored_files=None):
 def main():
     """Main function to generate and save directory tree"""
     # Your actual project directory on D: drive:
-    root_dir = r"D:\Work Files\Workspace\Project 1\Flask-PQ-Extractor\Flask_V1\pq_report_app_V1"
+    root_dir = r"D:\Work Files\Workspace\Project 1\Flask-PQ-Extractor\Flask_V1\pq_report_app_V2(till additional tables)"
     
     # Or use current directory if running from project folder:
     # root_dir = os.getcwd()

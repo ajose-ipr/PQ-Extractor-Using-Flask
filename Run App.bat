@@ -2,7 +2,7 @@
 cd /d "%~dp0app_files"
 
 :: Activate the virtual environment
-call env\Scripts\activate.bat
+call venv\Scripts\activate.bat
 
 :: Install dependencies
 pip install -r requirements.txt
@@ -12,8 +12,8 @@ python --version
 
 :: Run Flask app and open browser
 
-start /B python app.py
-timeout /t 5 /nobreak > NUL
-start "" http://localhost:5000
+start /B venv\Scripts\python.exe app.py
+timeout /t 8 /nobreak > NUL
 
 pause
+
