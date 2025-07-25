@@ -13,8 +13,7 @@ from utils.processing import (
     extract_metadata, extract_tables_from_pdf, 
     process_table_data, split_table, analyze_failures,
     create_bulk_excel_download,
-    extract_thd_tdd_summary_tables_from_pdf,
-    process_thd_tdd_summary_data, create_bulk_word_download,
+    create_bulk_word_download,
     create_enhanced_excel_download
 )
 
@@ -168,11 +167,6 @@ def process_file():
             else:
                 logger.warning(f"Table '{table_name}': No data extracted")
         
-        # Extract THD/TDD summary tables
-        thd_tdd_raw_data = extract_thd_tdd_summary_tables_from_pdf(filepath)
-        thd_tdd_tables = process_thd_tdd_summary_data(thd_tdd_raw_data)
-        logger.info(f"Extracted {len(thd_tdd_tables)} THD/TDD summary tables")
-        
         # Process individual harmonic tables and split by odd/even harmonics
         processed_tables = {}
         for table_name, table_data in tables.items():
@@ -247,7 +241,6 @@ def process_file():
                                 'report_info': report_info
                             },
                             tables=processed_tables,
-                            thd_tdd_tables=thd_tdd_tables,
                             violations=combined_violations,
                             violations_exist=not combined_violations.empty)
     
@@ -274,17 +267,13 @@ def download_file(filename):
         # Extract individual harmonic tables
         tables = extract_tables_from_pdf(filepath)
         
-        # Extract THD/TDD summary tables
-        thd_tdd_raw_data = extract_thd_tdd_summary_tables_from_pdf(filepath)
-        thd_tdd_tables = process_thd_tdd_summary_data(thd_tdd_raw_data)
-        
-        if not any(tables.values()) and not any(df.empty == False for df in thd_tdd_tables.values()):
+        if not any(tables.values()):
             logger.warning(f"No tables extracted from {filename}")
             flash('No data available for download', 'warning')
             return redirect(url_for('index'))
         
-        # Create enhanced Excel with both harmonic and THD/TDD tables
-        excel_data = create_enhanced_excel_download(tables, thd_tdd_tables, filename)
+        # Create enhanced Excel with harmonic 
+        excel_data = create_enhanced_excel_download(tables, filename)
         logger.info(f"Successfully created enhanced Excel download for {filename}")
         
         return send_file(

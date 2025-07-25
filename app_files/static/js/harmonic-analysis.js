@@ -723,7 +723,7 @@ class HarmonicAnalysis {
 
     enhanceTableStyling() {
         // Add smooth animations to all tables
-        const tables = document.querySelectorAll('.harmonic-data-table, .thd-summary-table');
+        const tables = document.querySelectorAll('.harmonic-data-table');
         tables.forEach((table, index) => {
             table.style.animationDelay = `${index * 0.1}s`;
             table.classList.add('fade-in-animation');
@@ -1006,25 +1006,6 @@ class HarmonicAnalysis {
                         font-size: 8pt;
                     }
                     
-                    /* THD Summary table styling */
-                    .thd-summary-table {
-                        font-size: 9pt;
-                        margin: 10px 0;
-                    }
-                    
-                    .thd-summary-table th {
-                        background-color: #E3F2FD !important;
-                        font-weight: bold;
-                        padding: 4px;
-                        -webkit-print-color-adjust: exact;
-                        color-adjust: exact;
-                    }
-                    
-                    .thd-summary-table td {
-                        padding: 3px;
-                        font-size: 8pt;
-                    }
-                    
                     .remarks-pass {
                         color: #4caf50;
                         font-weight: 500;
@@ -1080,9 +1061,6 @@ class HarmonicAnalysis {
                 </div>
         `;
         
-        // Add THD/TDD Summary Tables first
-        htmlContent += this.generateThdTddSummaryTablesHTML();
-        
         // Add individual harmonic tables
         const tables = document.querySelectorAll('.harmonic-data-table');
         const titles = document.querySelectorAll('.table-title');
@@ -1106,71 +1084,6 @@ class HarmonicAnalysis {
         });
         
         htmlContent += '</body></html>';
-        return htmlContent;
-    }
-    
-    /**
-     * Generate HTML for THD/TDD Summary Tables in Word export
-     */
-    generateThdTddSummaryTablesHTML() {
-        let htmlContent = '';
-        
-        const thdTddTables = [
-            {
-                id: 'voltage-thd-full-95-table',
-                title: '1. Total Harmonic Distortion in Voltage circuit (THD) for short time (10 minute) values 95th percentile',
-                class: 'voltage-thd-table'
-            },
-            {
-                id: 'voltage-thd-daily-99-table', 
-                title: '2. Total Harmonic Distortion in Voltage circuit (THD) for Very short time (3 second) values 99th percentile',
-                class: 'voltage-thd-table'
-            },
-            {
-                id: 'current-tdd-full-99-table',
-                title: '3. THD/TDD in Current circuit for short time (10Minute) values 99th percentile',
-                class: 'current-tdd-table'
-            },
-            {
-                id: 'current-tdd-full-95-table',
-                title: '4. THD/TDD in Current circuit for short time (10Minute) values 95th percentile',
-                class: 'current-tdd-table'
-            },
-            {
-                id: 'current-tdd-daily-99-table',
-                title: '5. THD/TDD in Current circuit for Very short time (3 second) values 99th percentile',
-                class: 'current-tdd-table'
-            }
-        ];
-        
-        thdTddTables.forEach(tableConfig => {
-            const table = document.getElementById(tableConfig.id);
-            if (table && table.querySelector('tbody').children.length > 0) {
-                const hasData = !table.querySelector('tbody').textContent.includes('No data available');
-                
-                if (hasData) {
-                    htmlContent += '<div class="page-container table-page">';
-                    htmlContent += `<div class="title">${tableConfig.title}</div>`;
-                    
-                    const clonedTable = table.cloneNode(true);
-                    clonedTable.className = `thd-summary-table ${tableConfig.class}`;
-                    
-                    // Process styling classes
-                    clonedTable.querySelectorAll('.remarks-violation').forEach(cell => {
-                        cell.className = 'remarks-violation';
-                    });
-                    clonedTable.querySelectorAll('.remarks-pass').forEach(cell => {
-                        cell.className = 'remarks-pass';
-                    });
-                    
-                    htmlContent += '<div class="table-container">';
-                    htmlContent += clonedTable.outerHTML;
-                    htmlContent += '</div>';
-                    htmlContent += '</div>';
-                }
-            }
-        });
-        
         return htmlContent;
     }
     

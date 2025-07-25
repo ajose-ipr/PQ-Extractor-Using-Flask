@@ -90,6 +90,13 @@ TEXT_EXTRACTION_PATTERNS = [
     )
 ]
 
+# Add this helper function to processing.py
+def is_7_day_report(filename):
+    """Check if filename indicates a 7-day report"""
+    filename_upper = str(filename).upper()
+    return "7" in filename_upper and "DAY" in filename_upper
+
+
 def safe_float_convert(val):
     """Convert value to float, preserve zeros and empty strings"""
     if val is None or val == "":
@@ -97,7 +104,7 @@ def safe_float_convert(val):
     try:
         return float(val)
     except:
-        return str(val)  #
+        return str(val)
 
 def extract_metadata(pdf_file, filename):
     """Extract metadata from PDF file"""
@@ -399,7 +406,6 @@ def process_table_data(table_data, table_name=None):
         logger.error(f"Error processing table data: {str(e)}")
         return pd.DataFrame(columns=columns)
 
-
 def split_table(df):
     """Split table by time limits and odd/even harmonics"""
     if df.empty:
@@ -417,7 +423,6 @@ def split_table(df):
     df_99 = df[df["Time Percent Limit[%]"] == 99.0].copy()
     
     return {"95": split_odd_even(df_95), "99": split_odd_even(df_99)}
-
 
 def analyze_failures(df, table_name=None):
     """Identify and summarize all harmonic violations with comprehensive page tracking"""
@@ -475,7 +480,6 @@ def analyze_failures(df, table_name=None):
         logger.info(f"Page distribution: {page_distribution}")
     
     return violations_df
-
 
 def highlight_fails_in_excel(df, ws, start_row=1):
     """Apply conditional formatting to highlight failed harmonics in Excel with page info"""
@@ -538,7 +542,6 @@ def highlight_fails_in_excel(df, ws, start_row=1):
             except:
                 continue
 
-
 def parse_filename_for_sheet_name(filename):
     """Parse filename to extract day number and time period for concise sheet naming"""
     filename_upper = filename.upper()
@@ -579,7 +582,6 @@ def get_table_abbreviation(table_name):
     
     return f"{prefix}{suffix}"
 
-
 def create_excel_download(tables_data, filename):
     """Create Excel file with all tables with highlighting and split by odd/even harmonics"""
     output = BytesIO()
@@ -607,7 +609,6 @@ def create_excel_download(tables_data, filename):
     
     output.seek(0)
     return output.getvalue()
-
 
 def create_bulk_excel_download(all_files_data):
     """Create Excel file with all PDFs using concise sheet naming and highlighting"""
@@ -656,7 +657,6 @@ def create_bulk_excel_download(all_files_data):
     wb.save(output2)
     output2.seek(0)
     return output2.getvalue()
-
 
 def create_bulk_word_download(all_files_data):
     """Create Word document with all PDFs using the same logic as Excel export"""
@@ -895,12 +895,42 @@ def create_bulk_word_download(all_files_data):
     
     return html_content.encode('utf-8')
 
-
 def is_violation(value, limit):
     try:
         return value != "" and limit != "" and float(value) > float(limit)
     except (ValueError, TypeError):
         return False
+    
+
+def create_enhanced_excel_download(tables_data, filename):
+    """Create Excel file with both individual harmonic tables and THD/TDD summary tables"""
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        
+        # Add individual harmonic tables
+        for table_name, table_data in tables_data.items():
+            if table_data:
+                df = process_table_data(table_data, table_name)
+                if not df.empty:
+                    split_dfs = split_table(df)
+                    
+                    table_prefix = "I" if "Current" in table_name else "V"
+                    table_suffix = "D" if "Daily" in table_name else "F"
+                    
+                    for limit in ["95", "99"]:
+                        odd_df, even_df = split_dfs[limit]
+                        
+                        for df_data, suffix in [(odd_df, 'O'), (even_df, 'E')]:
+                            if not df_data.empty:
+                                sheet_name = f"H_{table_prefix}{table_suffix}_{limit}_{suffix}"[:31]
+                                df_data.to_excel(writer, sheet_name=sheet_name, index=False)
+                                
+                                workbook = writer.book
+                                worksheet = workbook[sheet_name]
+                                highlight_fails_in_excel(df_data, worksheet, start_row=2)
+    
+    output.seek(0)
+    return output.getvalue()
 
 
 def _generate_excel_compatible_table_html(odd_df, even_df, table_name, limit):
@@ -1046,260 +1076,3 @@ def _generate_excel_compatible_table_html(odd_df, even_df, table_name, limit):
     
     html += "</tbody></table>"
     return html
-
-
-def create_enhanced_excel_download(tables_data, thd_tdd_tables, filename):
-    """Create Excel file with both individual harmonic tables and THD/TDD summary tables"""
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        
-        # Add THD/TDD Summary Tables first
-        for table_name, df in thd_tdd_tables.items():
-            if not df.empty:
-                sheet_name = f"THD_TDD_{table_name[:20]}"[:31]  # Ensure valid sheet name
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
-                
-                # Apply formatting
-                workbook = writer.book
-                worksheet = workbook[sheet_name]
-                
-                # Header formatting
-                header_fill = PatternFill(start_color='E3F2FD', end_color='E3F2FD', fill_type='solid')
-                for cell in worksheet[1]:
-                    cell.fill = header_fill
-                    cell.font = Font(bold=True)
-                
-                # Violation highlighting for remarks column
-                for row in worksheet.iter_rows(min_row=2):
-                    remarks_cell = row[-1]  # Last column should be remarks
-                    if remarks_cell.value and "Exceeding" in str(remarks_cell.value):
-                        for cell in row:
-                            cell.fill = PatternFill(start_color='FFEBEE', end_color='FFEBEE', fill_type='solid')
-                            cell.font = Font(color='D32F2F', bold=True)
-        
-        # Add individual harmonic tables
-        for table_name, table_data in tables_data.items():
-            if table_data:
-                df = process_table_data(table_data, table_name)
-                if not df.empty:
-                    split_dfs = split_table(df)
-                    
-                    table_prefix = "I" if "Current" in table_name else "V"
-                    table_suffix = "D" if "Daily" in table_name else "F"
-                    
-                    for limit in ["95", "99"]:
-                        odd_df, even_df = split_dfs[limit]
-                        
-                        for df_data, suffix in [(odd_df, 'O'), (even_df, 'E')]:
-                            if not df_data.empty:
-                                sheet_name = f"H_{table_prefix}{table_suffix}_{limit}_{suffix}"[:31]
-                                df_data.to_excel(writer, sheet_name=sheet_name, index=False)
-                                
-                                workbook = writer.book
-                                worksheet = workbook[sheet_name]
-                                highlight_fails_in_excel(df_data, worksheet, start_row=2)
-    
-    output.seek(0)
-    return output.getvalue()
-
-
-# THD/TDD SUMMARY TABLE FUNCTIONS
-def extract_thd_tdd_summary_tables_from_pdf(pdf_file):
-    """Extract all THD/TDD summary tables from PDF"""
-    tables_data = {
-        'voltage_thd_full_95': [],      # 10min THD 95th percentile
-        'voltage_thd_daily_99': [],     # 3sec THD 99th percentile  
-        'current_tdd_full_95': [],      # 10min TDD 95th percentile
-        'current_tdd_full_99': [],      # 10min TDD 99th percentile
-        'current_tdd_daily_99': []      # 3sec TDD 99th percentile
-    }
-    
-    try:
-        with pdfplumber.open(pdf_file if isinstance(pdf_file, str) else pdf_file) as pdf:
-            for page_num, page in enumerate(pdf.pages):
-                text = page.extract_text() or ""
-                text_upper = text.upper()
-                
-                # Extract Voltage THD Full Time Range (95th percentile)
-                if "TOTAL HARMONIC DISTORTION FULL TIME RANGE" in text_upper and "10MIN THD" in text_upper:
-                    tables_data['voltage_thd_full_95'].extend(
-                        _extract_thd_table_data(page, text, "voltage", "95")
-                    )
-                
-                # Extract Voltage THD Daily (99th percentile)  
-                if "TOTAL HARMONIC DISTORTION DAILY" in text_upper and "3SEC THD" in text_upper:
-                    tables_data['voltage_thd_daily_99'].extend(
-                        _extract_thd_table_data(page, text, "voltage", "99")
-                    )
-                
-                # Extract Current TDD Full Time Range (both 95th and 99th)
-                if "TDD FULL TIME RANGE" in text_upper and "10MIN TDD" in text_upper:
-                    # Check for both percentiles in the table
-                    if "95%" in text and "99%" in text:
-                        tables_data['current_tdd_full_95'].extend(
-                            _extract_thd_table_data(page, text, "current", "95")
-                        )
-                        tables_data['current_tdd_full_99'].extend(
-                            _extract_thd_table_data(page, text, "current", "99")
-                        )
-                
-                # Extract Current TDD Daily (99th percentile)
-                if "TDD DAILY" in text_upper and "3SEC TDD" in text_upper:
-                    tables_data['current_tdd_daily_99'].extend(
-                        _extract_thd_table_data(page, text, "current", "99")
-                    )
-                    
-        return tables_data
-        
-    except Exception as e:
-        logger.error(f"Error extracting THD/TDD summary tables: {str(e)}")
-        return tables_data
-
-def _extract_thd_table_data(page, text, table_type, percentile):
-    """Helper function to extract THD/TDD data from a page without hardcoded fallbacks"""
-    extracted_data = []
-    
-    try:
-        # Try structured table extraction first
-        tables = page.extract_tables()
-        for table in tables:
-            if table and len(table) > 1:
-                # Look for header row to identify the correct table
-                header_row = None
-                for i, row in enumerate(table):
-                    if row and any(cell and ("day" in str(cell).lower() or "date" in str(cell).lower()) for cell in row):
-                        header_row = i
-                        break
-                
-                if header_row is not None:
-                    # Process data rows
-                    for row in table[header_row + 1:]:
-                        if row and len(row) >= 6:
-                            day_cell = str(row[0]).strip() if row[0] else ""
-                            
-                            # Only process if we have a valid date and can extract all required fields
-                            if re.match(r'\d{1,2}[-/]\d{1,2}[-/]\d{4}', day_cell):
-                                # Extract all values from the table
-                                limit = safe_float_convert(row[2]) if len(row) > 2 else None
-                                r_phase = safe_float_convert(row[3]) if len(row) > 3 else None
-                                y_phase = safe_float_convert(row[4]) if len(row) > 4 else None
-                                b_phase = safe_float_convert(row[5]) if len(row) > 5 else None
-                                
-                                # Only add row if we successfully extracted all required values
-                                if None not in [limit, r_phase, y_phase, b_phase]:
-                                    data_row = {
-                                        "Day": day_cell,
-                                        "Percentile": percentile,
-                                        "Table_Type": table_type,
-                                        "R_Phase": r_phase,
-                                        "Y_Phase": y_phase,
-                                        "B_Phase": b_phase,
-                                        "Limit": limit
-                                    }
-                                    extracted_data.append(data_row)
-        
-        # Fallback: text pattern extraction if table extraction fails
-        if not extracted_data:
-            # Pattern to match the table data in text format
-            text_pattern = re.compile(
-                r'(\d{1,2}[-/]\d{1,2}[-/]\d{4})\s*\|\s*'  # Day
-                r'(\d+)\s*\|\s*'  # Time Percent Limit
-                r'([\d.]+)\s*\|\s*'  # Regulation max (limit)
-                r'([\d.]+)\s*\|\s*'  # V1N (R Phase)
-                r'([\d.]+)\s*\|\s*'  # V2N (Y Phase)
-                r'([\d.]+)\s*\|',  # V3N (B Phase)
-                re.IGNORECASE
-            )
-            
-            matches = re.finditer(text_pattern, text)
-            for match in matches:
-                try:
-                    # Extract all values from text pattern
-                    limit = safe_float_convert(match.group(3))
-                    r_phase = safe_float_convert(match.group(4))
-                    y_phase = safe_float_convert(match.group(5))
-                    b_phase = safe_float_convert(match.group(6))
-                    
-                    # Only add row if we successfully extracted all values
-                    if None not in [limit, r_phase, y_phase, b_phase]:
-                        data_row = {
-                            "Day": match.group(1),
-                            "Percentile": percentile,
-                            "Table_Type": table_type,
-                            "R_Phase": r_phase,
-                            "Y_Phase": y_phase,
-                            "B_Phase": b_phase,
-                            "Limit": limit
-                        }
-                        extracted_data.append(data_row)
-                except (IndexError, ValueError):
-                    continue
-    
-    except Exception as e:
-        logger.error(f"Error in _extract_thd_table_data: {str(e)}")
-    
-    return extracted_data
-
-def _extract_thd_from_text_patterns(text, table_type, percentile):
-    """Extract THD/TDD data using regex patterns as fallback"""
-    extracted_data = []
-    
-    # Pattern to match date and values
-    date_pattern = r'(\d{1,2}[-/]\d{1,2}[-/]\d{4})\s*,?\s*([\d.]+)\s*,?\s*([\d.]+)\s*,?\s*([\d.]+)\s*,?\s*([\d.]+)'
-    
-    matches = re.finditer(date_pattern, text)
-    for match in matches:
-        try:
-            data_row = {
-                "Day": match.group(1),
-                "Percentile": percentile,
-                "Table_Type": table_type,
-                "R_Phase": safe_float_convert(match.group(3)),
-                "Y_Phase": safe_float_convert(match.group(4)),
-                "B_Phase": safe_float_convert(match.group(5)),
-                "Limit": 7.5 if table_type == "voltage" else 10.0
-            }
-            extracted_data.append(data_row)
-        except (IndexError, ValueError):
-            continue
-    
-    return extracted_data
-
-def process_thd_tdd_summary_data(tables_data):
-    """Process extracted THD/TDD data into formatted DataFrames"""
-    processed_tables = {}
-    
-    for table_key, raw_data in tables_data.items():
-        if raw_data:
-            df_data = []
-            for row in raw_data:
-                processed_row = {
-                    "Day": row["Day"],
-                    "Recommended limit (%)": row["Limit"],
-                    "R Phase (%)": row["R_Phase"],
-                    "Y Phase (%)": row["Y_Phase"], 
-                    "B Phase (%)": row["B_Phase"],
-                    "Remarks": _generate_thd_remarks(row)
-                }
-                df_data.append(processed_row)
-            
-            processed_tables[table_key] = pd.DataFrame(df_data)
-        else:
-            processed_tables[table_key] = pd.DataFrame()
-    
-    return processed_tables
-
-def _generate_thd_remarks(row):
-    """Generate remarks for THD/TDD rows based on limit compliance"""
-    limit = row["Limit"]
-    phases = [row["R_Phase"], row["Y_Phase"], row["B_Phase"]]
-    
-    violations = []
-    for i, (phase_val, phase_name) in enumerate(zip(phases, ["R", "Y", "B"])):
-        if phase_val is not None and phase_val > limit:
-            violations.append(f"{phase_name}({phase_val:.2f}%)")
-    
-    if violations:
-        return f"Exceeding limit: {', '.join(violations)}"
-    else:
-        return "All values within limits"
