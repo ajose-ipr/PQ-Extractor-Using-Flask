@@ -142,16 +142,28 @@ class HarmonicAnalysis {
     }
     
     /**
-     * Generate all harmonic tables with enhanced features
+     * Modified generateAllTables method
      */
     generateAllTables() {
-        const tables = [
-            'voltage-daily',
-            'voltage-full', 
-            'current-daily',
-            'current-full-99',
-            'current-full-95'
-        ];
+        // Check if current file is 7-day report
+        const filename = document.querySelector('h2').textContent || '';
+        const is7Day = this.is7DayReport(filename);
+        
+        let tables;
+        if (is7Day) {
+            // For 7-day reports: show Full Time Range tables only
+            tables = [
+                'voltage-full',        // 95th percentile
+                'current-full-95',     // 95th percentile
+                'current-full-99'      // 99th percentile
+            ];
+        } else {
+            // For daily/night reports: show Daily tables only
+            tables = [
+                'voltage-daily',       // 99th percentile
+                'current-daily'        // 99th percentile
+            ];
+        }
         
         const tableResults = {};
         
@@ -163,6 +175,43 @@ class HarmonicAnalysis {
         this.logViolationSummary(tableResults);
         this.displayMissingHarmonicsSummary();
         this.enhanceGeneratedTables();
+        
+        // Hide unused table sections
+        this.hideUnusedTableSections(tables);
+    }
+
+    /**
+     * New helper method to check if filename indicates 7-day report
+     */
+    is7DayReport(filename) {
+        const filenameUpper = String(filename).toUpperCase();
+        return filenameUpper.includes('7') && filenameUpper.includes('DAY');
+    }
+
+    /**
+     * New method to hide unused table sections
+     */
+    hideUnusedTableSections(activeTables) {
+        const allPossibleTables = [
+            'voltage-daily',
+            'voltage-full', 
+            'current-daily',
+            'current-full-99',
+            'current-full-95'
+        ];
+        
+        allPossibleTables.forEach(tableId => {
+            if (!activeTables.includes(tableId)) {
+                const tableElement = document.getElementById(tableId + '-table');
+                if (tableElement) {
+                    const tableSection = tableElement.closest('.harmonic-table-section');
+                    if (tableSection) {
+                        tableSection.style.display = 'none';
+                        this.log(`Hidden unused table section: ${tableId}`);
+                    }
+                }
+            }
+        });
     }
     
     /**
@@ -516,16 +565,26 @@ class HarmonicAnalysis {
     }
     
     /**
-     * ENHANCED: Display missing harmonics summary in the UI with page information
+     * Modified displayMissingHarmonicsSummary method
      */
     displayMissingHarmonicsSummary() {
-        const tables = [
-            { id: 'voltage-daily', name: 'Voltage Daily (99th percentile)' },
-            { id: 'voltage-full', name: 'Voltage Full Range (95th percentile)' },
-            { id: 'current-daily', name: 'Current Daily (99th percentile)' },
-            { id: 'current-full-99', name: 'Current Full Range (99th percentile)' },
-            { id: 'current-full-95', name: 'Current Full Range (95th percentile)' }
-        ];
+        // Check if current file is 7-day report
+        const filename = document.querySelector('h2').textContent || '';
+        const is7Day = this.is7DayReport(filename);
+        
+        let tables;
+        if (is7Day) {
+            tables = [
+                { id: 'voltage-full', name: 'Voltage Full Range (95th percentile)' },
+                { id: 'current-full-95', name: 'Current Full Range (95th percentile)' },
+                { id: 'current-full-99', name: 'Current Full Range (99th percentile)' }
+            ];
+        } else {
+            tables = [
+                { id: 'voltage-daily', name: 'Voltage Daily (99th percentile)' },
+                { id: 'current-daily', name: 'Current Daily (99th percentile)' }
+            ];
+        }
         
         let allMissingHarmonics = [];
         
@@ -549,7 +608,6 @@ class HarmonicAnalysis {
         
         this.updateMissingHarmonicsUI(allMissingHarmonics);
     }
-    
     /**
      * ENHANCED: Update the missing harmonics UI section with page information
      */

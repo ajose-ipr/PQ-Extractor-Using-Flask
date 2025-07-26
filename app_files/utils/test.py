@@ -90,21 +90,11 @@ TEXT_EXTRACTION_PATTERNS = [
     )
 ]
 
-# Add this helper function to processing.py
-def is_7_day_report(filename):
-    """Check if filename indicates a 7-day report"""
-    filename_upper = str(filename).upper()
-    return "7" in filename_upper and "DAY" in filename_upper
-
-
 def safe_float_convert(val):
-    """Convert value to float, preserve zeros and empty strings"""
-    if val is None or val == "":
-        return ""
     try:
         return float(val)
-    except:
-        return str(val)
+    except Exception:
+        return None
 
 def extract_metadata(pdf_file, filename):
     """Extract metadata from PDF file"""
@@ -155,55 +145,51 @@ def extract_metadata(pdf_file, filename):
         return "Not found", "Error", "Error", "Error", report_info
 
 def extract_table_data_from_text(text, has_results=True, page_number=None):
-    """Enhanced text extraction - preserve all values including zeros"""
+    """Enhanced text extraction for all table types with page tracking"""
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'(Pass|Fail)\s*\(\s*([\d.%]+)\s*\)', r'\1(\2)', text)
     
     data = []
     
-    # More flexible patterns to catch all data
-    flexible_patterns = [
-        # Original patterns
-        *TEXT_EXTRACTION_PATTERNS,
-        # Additional flexible pattern for edge cases
-        re.compile(
-            r'(\d+)\s*[,\s]*(\d+)\s*[,\s]*([\d.]+)\s*[,\s]*([\d.\s]*)\s*[,\s]*([\d.\s]*)\s*[,\s]*([\d.\s]*)',
-            re.IGNORECASE
-        )
-    ]
-    
-    for pattern in flexible_patterns:
+    # Try each pattern
+    for pattern in TEXT_EXTRACTION_PATTERNS:
         for match in pattern.finditer(text):
             try:
                 harmonic = int(match.group(1))
                 
-                # FILTER: Skip harmonic 1 and invalid range
-                if harmonic == 1 or harmonic < 2 or harmonic > 50 or harmonic > 1000:
+                # FILTER 1: Skip harmonic 1 (fundamental frequency)
+                if harmonic == 1:
+                    continue
+                
+                # FILTER 2: Skip non-harmonic data (years, dates, etc.)
+                if harmonic < 2 or harmonic > 50:
+                    continue
+                
+                # FILTER 3: Additional validation - if the "harmonic" looks like a year
+                if harmonic > 1000:
                     continue
                 
                 groups = match.groups()
                 
                 if len(groups) >= 12:  # Full pattern with Pass/Fail
                     row = [
-                        harmonic, match.group(2), match.group(3), 
-                        match.group(4) or "", match.group(5) or "", match.group(6) or "",
-                        f"{match.group(7)}({match.group(8)})",
-                        f"{match.group(9)}({match.group(10)})", 
-                        f"{match.group(11)}({match.group(12)})",
+                        harmonic, match.group(2), match.group(3), match.group(4),
+                        match.group(5), match.group(6), f"{match.group(7)}({match.group(8)})",
+                        f"{match.group(9)}({match.group(10)})", f"{match.group(11)}({match.group(12)})",
                         page_number
                     ]
                 elif len(groups) >= 9:  # Pattern without Pass/Fail
                     row = [
-                        harmonic, match.group(2), match.group(3),
-                        match.group(4) or "", match.group(5) or "", match.group(6) or "",
-                        f"Pass({match.group(7)})", f"Pass({match.group(8)})", 
-                        f"Pass({match.group(9)})", page_number
+                        harmonic, match.group(2), match.group(3), match.group(4),
+                        match.group(5), match.group(6), f"Pass({match.group(7)})",
+                        f"Pass({match.group(8)})", f"Pass({match.group(9)})",
+                        page_number
                     ]
                 elif len(groups) >= 6 and not has_results:  # Just measurements
                     row = [
-                        harmonic, match.group(2), match.group(3),
-                        match.group(4) or "", match.group(5) or "", match.group(6) or "",
-                        "N/A", "N/A", "N/A", page_number
+                        harmonic, match.group(2), match.group(3), match.group(4),
+                        match.group(5), match.group(6), "N/A", "N/A", "N/A",
+                        page_number
                     ]
                 else:
                     continue
@@ -364,7 +350,7 @@ def extract_tables_from_pdf(file):
     return tables
 
 def process_table_data(table_data, table_name=None):
-    """Process and validate table data with page number support - preserve all values"""
+    """Process and validate table data with page number support"""
     columns = CURRENT_COLUMNS if table_name and "Current" in table_name else VOLTAGE_COLUMNS
     
     if not table_data:
@@ -372,13 +358,13 @@ def process_table_data(table_data, table_name=None):
 
     try:
         df = pd.DataFrame(table_data, columns=columns)
-        
-        # Only convert Harmonic column to numeric for filtering
         df['Harmonic'] = pd.to_numeric(df['Harmonic'], errors='coerce')
         df = df.dropna(subset=['Harmonic'])
         
         # CRITICAL FILTER: Remove fundamental frequency and invalid harmonics
         df = df[df['Harmonic'] != 1]
+        
+        # ADDITIONAL FILTER: Only keep valid harmonic range (2-50)
         df = df[(df['Harmonic'] >= 2) & (df['Harmonic'] <= 50)]
         
         df = df.drop_duplicates(subset=['Harmonic', 'Time Percent Limit[%]'])
@@ -386,21 +372,22 @@ def process_table_data(table_data, table_name=None):
         found_harmonics = set(df['Harmonic'].astype(int))
         missing = sorted(EXPECTED_HARMONICS - found_harmonics)
         
+        # Log missing harmonics for debugging
         if missing:
             logger.info(f"Missing harmonics in {table_name}: {missing[:10]}{'...' if len(missing) > 10 else ''}")
         
+        # Log page number distribution
         if 'Page_Number' in df.columns:
             page_distribution = df['Page_Number'].value_counts().to_dict()
             logger.info(f"Page distribution for {table_name}: {page_distribution}")
         
-        # Convert only essential numeric columns, preserve measured values as-is
-        essential_cols = ["Harmonic", "Time Percent Limit[%]", "Reg Max[%]"]
-        for col in essential_cols:
+        numeric_cols = ["Harmonic", "Time Percent Limit[%]", "Reg Max[%]", 
+                       df.columns[3], df.columns[4], df.columns[5]]
+        for col in numeric_cols:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
         
-        # Keep measured values as original (including zeros and strings)
-        return df.dropna(subset=essential_cols)
+        return df.dropna()
     
     except Exception as e:
         logger.error(f"Error processing table data: {str(e)}")
@@ -533,12 +520,6 @@ def highlight_fails_in_excel(df, ws, start_row=1):
                     
                     harmonic_cell = ws.cell(row=r_idx, column=1)
                     harmonic_cell.fill = harmonic_fill
-                    
-                    # Highlight page number for violations
-                    if page_col:
-                        page_cell = ws.cell(row=r_idx, column=page_col)
-                        page_cell.fill = fail_fill
-                        page_cell.font = fail_font
             except:
                 continue
 
@@ -643,7 +624,7 @@ def create_bulk_excel_download(all_files_data):
                         
                         workbook = writer.book
                         worksheet = workbook[sheet_name]
-                        highlight_fails_in_excel(df, worksheet, start_row=1)
+                        highlight_fails_in_excel(df, worksheet, start_row=2)
     
     output.seek(0)
     wb = load_workbook(output)
@@ -658,273 +639,12 @@ def create_bulk_excel_download(all_files_data):
     output2.seek(0)
     return output2.getvalue()
 
-# Modified create_bulk_word_download function in processing.py
-def create_bulk_word_download(all_files_data):
-    """Create Word document with all PDFs using conditional table logic"""
-    from datetime import datetime
-    
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    
-    # Start HTML document
-    html_content = f"""
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <title>Bulk Harmonic Analysis Report</title>
-        <style>
-            @page {{
-                size: A4 landscape;
-                margin: 0.5in 0.3in;
-            }}
-            
-            body {{ 
-                font-family: Arial, sans-serif; 
-                font-size: 9pt; 
-                margin: 0;
-                line-height: 1.1;
-            }}
-            
-            .page-container {{
-                page-break-after: always;
-                min-height: 95vh;
-                max-height: 95vh;
-                overflow: hidden;
-                padding: 10px 0;
-            }}
-            
-            .page-container:last-child {{
-                page-break-after: avoid;
-            }}
-            
-            .cover-page {{
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                height: 95vh;
-                text-align: center;
-                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-                border: 3px solid #0d6efd;
-                border-radius: 15px;
-                margin: 20px;
-                padding: 40px;
-            }}
-            
-            .file-title {{
-                text-align: center;
-                font-weight: bold;
-                font-size: 16pt;
-                color: #1e3a8a;
-                margin: 20px 0;
-                padding: 15px;
-                border: 2px solid #3b82f6;
-                background-color: #f1f5f9;
-                border-radius: 8px;
-            }}
-            
-            .table-title {{
-                text-align: center;
-                font-weight: bold;
-                text-decoration: underline;
-                margin: 15px 0 10px 0;
-                font-size: 12pt;
-                color: #1e40af;
-            }}
-            
-            table {{ 
-                border-collapse: collapse; 
-                width: 100%; 
-                font-size: 8pt;
-                margin: 10px 0;
-                page-break-inside: avoid;
-                max-height: 70vh;
-            }}
-            
-            th, td {{ 
-                border: 1px solid #000; 
-                padding: 3px 4px; 
-                text-align: center;
-                vertical-align: middle;
-                word-wrap: break-word;
-                line-height: 1.0;
-            }}
-            
-            th {{ 
-                background-color: #dbeafe !important;
-                font-weight: bold; 
-                font-size: 8pt;
-                color: #1e40af;
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-            }}
-            
-            /* Even harmonics styling */
-            .even-harmonic, .even-limit, .even-r, .even-y, .even-b {{
-                background-color: #fff2cc !important;
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-            }}
-            
-            /* Odd harmonics styling */
-            .odd-harmonic, .odd-limit, .odd-r, .odd-y, .odd-b {{
-                background-color: #e1f5fe !important;
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-            }}
-            
-            /* Current table variations */
-            .current-table .even-harmonic, .current-table .even-limit, 
-            .current-table .even-r, .current-table .even-y, .current-table .even-b {{
-                background-color: #e0f2fe !important;
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-            }}
-            
-            .current-table .odd-harmonic, .current-table .odd-limit,
-            .current-table .odd-r, .current-table .odd-y, .current-table .odd-b {{
-                background-color: #dcfce7 !important;
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-            }}
-            
-            .remarks {{
-                background-color: #f9fafb !important;
-                color: #374151;
-                font-size: 7pt;
-                text-align: left;
-                padding-left: 5px;
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-            }}
-
-            /* Violation highlighting */
-            .violation {{ 
-                background-color: #fecaca !important; 
-                color: #dc2626 !important; 
-                font-weight: bold; 
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-            }}
-
-            .within-limits {{
-            color: #16a34a !important;  /* Green color */
-            font-weight: bold;
-            }}
-
-            .exceeds-limits {{
-            color: #dc2626 !important;  /* Red color */
-            font-weight: bold;
-            }}
-            
-            .summary-box {{
-                background-color: #e3f2fd;
-                border: 1px solid #1976d2;
-                border-radius: 5px;
-                padding: 15px;
-                margin: 15px 0;
-                text-align: center;
-            }}
-        </style>
-    </head>
-    <body>
-        <!-- ENHANCED COVER PAGE -->
-        <div class="page-container cover-page">
-            <h1 style="font-size: 24pt; color: #1e3a8a; margin-bottom: 10px;">
-                📊 BULK HARMONIC ANALYSIS REPORT
-            </h1>
-            <div class="summary-box">
-                <h2 style="color: #1565c0; margin-bottom: 20px;">Report Summary</h2>
-                <p style="font-size: 14pt; margin: 10px 0;"><strong>📅 Generated Date:</strong> {current_date}</p>
-                <p style="font-size: 14pt; margin: 10px 0;"><strong>📁 Total Files Analyzed:</strong> {len(all_files_data)}</p>
-                <p style="font-size: 14pt; margin: 10px 0;"><strong>🔍 Analysis Type:</strong> IEEE 519-2022 Harmonic Compliance</p>
-            </div>
-            <div style="margin-top: 40px; font-size: 12pt; color: #666;">
-                <p>This report contains individual harmonic distortion analysis for:</p>
-                <ul style="text-align: left; display: inline-block; margin-top: 15px;">
-                    <li>Voltage Harmonic Distortion (3sec & 10min)</li>
-                    <li>Current Harmonic Distortion (3sec & 10min)</li>
-                    <li>IEEE 519-2022 Compliance Assessment</li>
-                    <li>Violation Detection & Analysis</li>
-                </ul>
-            </div>
-        </div>
-    """
-    
-    # Process each file using conditional table logic
-    for file_index, (file_name, tables_data) in enumerate(all_files_data.items()):
-        is_7_day = is_7_day_report(file_name)
-        
-        # Add file separator
-        html_content += f"""
-        <div class="page-container">
-            <div class="file-title">
-                File {file_index + 1}: {file_name}
-            </div>
-        """
-        
-        # Process each table using conditional logic
-        for table_name, table_data in tables_data.items():
-            if table_data:
-                df = process_table_data(table_data, table_name)
-                if not df.empty:
-                    split_dfs = split_table(df)
-                    
-                    # Conditional table display logic
-                    if is_7_day:
-                        # For 7-day reports: show Full Time Range tables only
-                        if "Full Time Range" in table_name:
-                            table_prefix = "Current" if "Current" in table_name else "Voltage"
-                            
-                            if "Current" in table_name:
-                                # Show both 95th and 99th percentile for current
-                                for limit in ["95", "99"]:
-                                    if limit in split_dfs:
-                                        odd_df, even_df = split_dfs[limit]
-                                        if not odd_df.empty or not even_df.empty:
-                                            display_title = f"Individual {table_prefix} Harmonic distortion (Full Time Range) {limit}th percentile"
-                                            html_content += f'<div class="table-title">{display_title}</div>'
-                                            table_html = _generate_excel_compatible_table_html(odd_df, even_df, table_name, limit)
-                                            html_content += table_html
-                            else:
-                                # Show only 95th percentile for voltage
-                                limit = "95"
-                                if limit in split_dfs:
-                                    odd_df, even_df = split_dfs[limit]
-                                    if not odd_df.empty or not even_df.empty:
-                                        display_title = f"Individual {table_prefix} Harmonic distortion (Full Time Range) {limit}th percentile"
-                                        html_content += f'<div class="table-title">{display_title}</div>'
-                                        table_html = _generate_excel_compatible_table_html(odd_df, even_df, table_name, limit)
-                                        html_content += table_html
-                    else:
-                        # For daily/night reports: show Daily tables only
-                        if "Daily" in table_name:
-                            table_prefix = "Current" if "Current" in table_name else "Voltage"
-                            limit = "99"  # Daily tables use 99th percentile
-                            
-                            if limit in split_dfs:
-                                odd_df, even_df = split_dfs[limit]
-                                if not odd_df.empty or not even_df.empty:
-                                    display_title = f"Individual {table_prefix} Harmonic distortion (Daily) {limit}th percentile"
-                                    html_content += f'<div class="table-title">{display_title}</div>'
-                                    table_html = _generate_excel_compatible_table_html(odd_df, even_df, table_name, limit)
-                                    html_content += table_html
-        
-        html_content += "</div>"  # Close file page
-    html_content += "</body></html>"
-    return html_content.encode('utf-8')
-
-def is_violation(value, limit):
-    try:
-        return value != "" and limit != "" and float(value) > float(limit)
-    except (ValueError, TypeError):
-        return False
-    
 
 def create_enhanced_excel_download(tables_data, filename):
-    """Create Excel file with both individual harmonic tables and THD/TDD summary tables"""
+    """Create Excel file with both individual harmonic tables"""
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        
+
         # Add individual harmonic tables
         for table_name, table_data in tables_data.items():
             if table_data:
@@ -949,148 +669,3 @@ def create_enhanced_excel_download(tables_data, filename):
     
     output.seek(0)
     return output.getvalue()
-
-
-def _generate_excel_compatible_table_html(odd_df, even_df, table_name, limit):
-    """Generate HTML table using the EXACT same logic as Excel export - show all values including zeros"""
-    
-    table_class = "current-table" if "Current" in table_name else "voltage-table"
-    
-    html = f'<table class="{table_class}">'
-    
-    html += """
-    <thead>
-        <tr>
-            <th rowspan="2" class="even-harmonic">Even Harmonic</th>
-            <th rowspan="2" class="even-limit">Recommended Limits (%)</th>
-            <th colspan="3">Measured max [%]</th>
-            <th rowspan="2" class="odd-harmonic">Odd Harmonic</th>
-            <th rowspan="2" class="odd-limit">Recommended Limits (%)</th>
-            <th colspan="3">Measured max [%]</th>
-            <th rowspan="2" class="remarks">Remarks</th>
-        </tr>
-        <tr>
-            <th class="even-r">R</th>
-            <th class="even-y">Y</th>
-            <th class="even-b">B</th>
-            <th class="odd-r">R</th>
-            <th class="odd-y">Y</th>
-            <th class="odd-b">B</th>
-        </tr>
-    </thead>
-    <tbody>
-    """
-    
-    even_data = {}
-    odd_data = {}
-    
-    if not even_df.empty:
-        for _, row in even_df.iterrows():
-            harmonic = int(row['Harmonic'])
-            measured_cols = ['Measured_I1', 'Measured_I2', 'Measured_I3'] if 'Current' in table_name else ['Measured_V1N', 'Measured_V2N', 'Measured_V3N']
-            
-            even_data[harmonic] = {
-                'limit': row['Reg Max[%]'] if pd.notna(row['Reg Max[%]']) else "",
-                'values': [
-                    row[measured_cols[0]] if pd.notna(row[measured_cols[0]]) else "",
-                    row[measured_cols[1]] if pd.notna(row[measured_cols[1]]) else "",
-                    row[measured_cols[2]] if pd.notna(row[measured_cols[2]]) else ""
-                ]
-            }
-    
-    if not odd_df.empty:
-        for _, row in odd_df.iterrows():
-            harmonic = int(row['Harmonic'])
-            measured_cols = ['Measured_I1', 'Measured_I2', 'Measured_I3'] if 'Current' in table_name else ['Measured_V1N', 'Measured_V2N', 'Measured_V3N']
-            
-            odd_data[harmonic] = {
-                'limit': row['Reg Max[%]'] if pd.notna(row['Reg Max[%]']) else "",
-                'values': [
-                    row[measured_cols[0]] if pd.notna(row[measured_cols[0]]) else "",
-                    row[measured_cols[1]] if pd.notna(row[measured_cols[1]]) else "",
-                    row[measured_cols[2]] if pd.notna(row[measured_cols[2]]) else ""
-                ]
-            }
-    
-    even_harmonics = list(range(2, 51, 2))
-    odd_harmonics = list(range(3, 50, 2))
-    max_rows = max(len(even_harmonics), len(odd_harmonics))
-    
-    has_violations = False
-    
-    for i in range(max_rows):
-        html += "<tr>"
-        
-        # Even harmonic column
-        if i < len(even_harmonics):
-            even_harmonic = even_harmonics[i]
-            even_info = even_data.get(even_harmonic, {'limit': "", 'values': ["", "", ""]})
-            
-            html += f'<td class="even-harmonic">{even_harmonic}</td>'
-            html += f'<td class="even-limit"><strong>{even_info["limit"]}</strong></td>'
-            
-            for j, value in enumerate(even_info['values']):
-                cell_class = f"even-{'ryb'[j]}"
-                
-                # Check for violations - only if both value and limit exist and are numeric
-                try:
-                    if (value != "" and even_info['limit'] != "" and 
-                        float(value) > float(even_info['limit'])):
-                        cell_class += " violation"
-                        has_violations = True
-                except (ValueError, TypeError):
-                    pass
-                
-                # Display ALL values including zeros and empty strings
-                display_value = str(value) if value != "" else ""
-                html += f'<td class="{cell_class}">{display_value}</td>'
-        else:
-            html += '<td class="even-harmonic"></td><td class="even-limit"></td>'
-            html += '<td class="even-r"></td><td class="even-y"></td><td class="even-b"></td>'
-        
-        # Odd harmonic column
-        if i < len(odd_harmonics):
-            odd_harmonic = odd_harmonics[i]
-            odd_info = odd_data.get(odd_harmonic, {'limit': "", 'values': ["", "", ""]})
-            
-            html += f'<td class="odd-harmonic">{odd_harmonic}</td>'
-            html += f'<td class="odd-limit"><strong>{odd_info["limit"]}</strong></td>'
-            
-            for j, value in enumerate(odd_info['values']):
-                cell_class = f"odd-{'ryb'[j]}"
-                cell_style = ""
-                try:
-                    if (value != "" and odd_info['limit'] != "" and float(value) > float(odd_info['limit'])):
-                        cell_style = ' style="color:#dc2626; background-color:#fecaca; font-weight:bold;"'
-                        has_violations = True
-                except (ValueError, TypeError):
-                    pass
-                display_value = str(value) if value != "" else ""
-                html += f'<td class="{cell_class}"{cell_style}>{display_value}</td>'
-        else:
-            html += '<td class="odd-harmonic"></td><td class="odd-limit"></td>'
-            html += '<td class="odd-r"></td><td class="odd-y"></td><td class="odd-b"></td>'
-        
-        # Remarks column
-        if i == 0:
-            # Check for any violations in this table
-            has_violations = False
-            for harmonic_info in list(even_data.values()) + list(odd_data.values()):
-                if harmonic_info['limit']:
-                    for value in harmonic_info['values']:
-                        if is_violation(value, harmonic_info['limit']):
-                            has_violations = True
-                            break
-                if has_violations:
-                    break
-            
-            if has_violations:
-                html += '<td class="remarks exceeds-limits" style="color:#dc2626">Values exceeding limits detected</td>'
-            else:
-                html += '<td class="remarks within-limits" style="color:#008000">All values within limits</td>'
-        else:
-            html += '<td class="remarks"></td>'
-        html += "</tr>"
-    
-    html += "</tbody></table>"
-    return html
